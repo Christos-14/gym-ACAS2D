@@ -40,4 +40,3 @@ class TrafficAircraft(Aircraft):
         h1 = (self.heading + 120) % 360
         h2 = (self.heading + 240) % 360
         self.heading = random.randint(min(h1, h2), max(h1, h2))
-

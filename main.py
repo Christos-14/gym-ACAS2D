@@ -13,9 +13,10 @@ GREEN_RGB = (0, 255, 0)
 RED_RGB = (255, 0, 0)
 
 # AIRCRAFT CONSTANTS
+N_TRAFFIC = 4
 AIRCRAFT_SIZE = 24  # images used are 24x24 pixels
-N_TRAFFIC = 10
 COLLISION_RADIUS = 48
+MEDIUM_SPEED = 0.2  # SLOW = 75% - NORMAL = 100% - FAST = 125%
 
 # IMAGE FILES
 LOGO = "png/004-compass.png"
@@ -40,7 +41,7 @@ if __name__ == '__main__':
     font = pygame.font.Font(FONT_NAME, FONT_SIZE)
 
     # Create game
-    game = Game(WIDTH, HEIGHT, N_TRAFFIC, AIRCRAFT_SIZE, COLLISION_RADIUS, manual=True)
+    game = Game(WIDTH, HEIGHT, N_TRAFFIC, AIRCRAFT_SIZE, COLLISION_RADIUS, MEDIUM_SPEED, manual=True)
 
     # Game loop - keeps our screen active
     running = True
@@ -60,7 +61,7 @@ if __name__ == '__main__':
         if game.manual:
             # Variables to track manual motion control inputs
             delta_x, delta_y = 0, 0
-            playerStep = 0.1
+            playerStep = 2 * MEDIUM_SPEED
             # stores keys pressed
             keys = pygame.key.get_pressed()
 
