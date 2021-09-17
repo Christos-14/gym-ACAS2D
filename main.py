@@ -24,6 +24,7 @@ PLAYER_IMG = "png/001-plane.png"
 TRAFFIC_IMG = "png/002-travelling.png"
 GOAL_IMG = "png/003-army.png"
 
+
 if __name__ == '__main__':
 
     # Initialize PyGame
@@ -101,10 +102,10 @@ if __name__ == '__main__':
                 raise NotImplementedError
 
         # Place player in the game
-        screen.blit(playerIMG, (player_x, player_y))
+        screen.blit(playerIMG, (player_x - (AIRCRAFT_SIZE/2), player_y - (AIRCRAFT_SIZE/2)))
 
         # Place goal in the game
-        screen.blit(goalIMG, (game.goal_x, game.goal_y))
+        screen.blit(goalIMG, (game.goal_x - (AIRCRAFT_SIZE/2), game.goal_y - (AIRCRAFT_SIZE/2)))
 
         # Place traffic aircraft in the game
         for t in game.traffic:
@@ -112,25 +113,19 @@ if __name__ == '__main__':
                 t.update_position()
                 if t.out_of_bounds(WIDTH, HEIGHT):
                     t.bounce(WIDTH, HEIGHT)
-            screen.blit(trafficIMG, (t.x, t.y))
+            screen.blit(trafficIMG, (t.x - (AIRCRAFT_SIZE/2), t.y - (AIRCRAFT_SIZE/2)))
 
         # Draw collision circle around aircraft
-        pygame.draw.circle(screen, GREEN_RGB,
-                           (game.player.x + (AIRCRAFT_SIZE / 2),
-                            game.player.y + (AIRCRAFT_SIZE / 2)),
-                           COLLISION_RADIUS, 1)
-        for t in game.traffic:
-            pygame.draw.circle(screen, RED_RGB,
-                               (t.x + (AIRCRAFT_SIZE / 2), t.y +
-                                (AIRCRAFT_SIZE / 2)),
-                               COLLISION_RADIUS, 1)
+        pygame.draw.circle(screen, GREEN_RGB, (game.player.x, game.player.y), COLLISION_RADIUS, 1)
+        # for t in game.traffic:
+        #     pygame.draw.circle(screen, RED_RGB, (t.x, t.y), COLLISION_RADIUS, 1)
 
         # Display minimum separation
         min_separation = game.minimum_separation()
         ms = font.render("Min. Separation: {}".format(round(min_separation, 3)), True, FONT_RGB)
         screen.blit(ms, (20, HEIGHT-20))
 
-        # Display 'time' (number of game loop iterrations)
+        # Display 'time' (number of game loop iterations)
         ts = font.render("Time steps: {}".format(time_steps), True, FONT_RGB)
         screen.blit(ts, (int(WIDTH/2) - 50, HEIGHT - 20))
 

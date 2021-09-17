@@ -86,14 +86,15 @@ class Game:
                 break
         return collision
 
-    def check_goal(self):
+    def check_goal(self, d_reached=10):
         # Player and goal positions as np.array
         p = np.array((self.player.x, self.player.y))
         g = np.array((self.goal_x, self.goal_y))
         # Euclidean distance between player and goal
         d = np.linalg.norm(p-g, 2)
         # If the distance is less than the collision radius, player reached the goal
-        if d < self.collision_radius:
+        goal = d < d_reached
+        if goal:
             self.running = False
             self.win = True
-        return d < self.collision_radius
+        return goal
