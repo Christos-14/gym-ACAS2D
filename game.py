@@ -29,7 +29,7 @@ class Game:
             # Set the player starting position at random, in the bottom part of the airspace
             # Set the player starting heading and speed to zero
             player_x = random.randint(0, self.width - self.aircraft_size)
-            player_y = random.randint(int(3 * self.height / 4), self.height - self.aircraft_size)
+            player_y = random.randint(int(4 * self.height / 5), self.height - self.aircraft_size)
             self.player = PlayerAircraft(aircraft_size, x=player_x, y=player_y, speed=0, heading=0)
 
             # Set the traffic aircraft positions, headings and speeds at random, in the middle part of the airspace.
@@ -37,7 +37,7 @@ class Game:
             for t in range(n_traffic):
                 # Random position in the mid part of the airspace
                 t_x = random.randint(0, self.width - self.aircraft_size)
-                t_y = random.randint(int(self.height / 4), int(2 * self.height / 3))
+                t_y = random.randint(0, int(3 * self.height / 5))
                 # Random speed: low (75%), medium (100%), or high (125%)
                 t_speed = (random.randint(3, 6) / 4) * self.medium_speed
                 # Random heading: 0..359 degrees
@@ -45,8 +45,8 @@ class Game:
                 self.traffic.append(TrafficAircraft(aircraft_size, x=t_x, y=t_y, speed=t_speed, heading=t_heading))
 
             # Set the goal position at random, in the top part of the airspace.
-            self.goal_x = random.randint(0, self.width - self.aircraft_size)
-            self.goal_y = random.randint(0, int(self.height / 4))
+            self.goal_x = random.randint(self.aircraft_size, self.width - self.aircraft_size)
+            self.goal_y = random.randint(self.aircraft_size, int(self.height / 5))
 
         else:
             raise NotImplementedError
@@ -86,7 +86,7 @@ class Game:
                 break
         return collision
 
-    def check_goal(self, d_reached=10):
+    def check_goal(self, d_reached=20):
         # Player and goal positions as np.array
         p = np.array((self.player.x, self.player.y))
         g = np.array((self.goal_x, self.goal_y))
