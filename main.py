@@ -127,7 +127,7 @@ if __name__ == '__main__':
 
         # Display 'time' (number of game loop iterations)
         ts = font.render("Time steps: {}".format(time_steps), True, FONT_RGB)
-        screen.blit(ts, (int(WIDTH/2) - 50, HEIGHT - 20))
+        screen.blit(ts, (round(WIDTH/2) - 50, HEIGHT - 20))
 
         # Display distance to target
         dist_to_goal = game.distance_to_goal()
@@ -137,12 +137,12 @@ if __name__ == '__main__':
         # Detect collisions
         if game.detect_collisions():
             mes = font.render("Collision!", True, FONT_RGB)
-            screen.blit(mes, (int(WIDTH/2) - 30, int(HEIGHT/2)))
+            screen.blit(mes, (round(WIDTH/2) - 30, round(HEIGHT/2)))
 
         # Check if player reached the goal
         if game.check_goal():
             mes = font.render("Goal reached!", True, FONT_RGB)
-            screen.blit(mes, (int(WIDTH/2) - 40, int(HEIGHT/2)))
+            screen.blit(mes, (round(WIDTH/2) - 40, round(HEIGHT/2)))
 
         # Update the game screen
         pygame.display.update()
