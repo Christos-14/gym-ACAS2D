@@ -1,6 +1,7 @@
-from aircraft import PlayerAircraft, TrafficAircraft
 import numpy as np
 import random
+
+from gym_ACAS2D.envs.aircraft import PlayerAircraft, TrafficAircraft
 
 
 class Game:
