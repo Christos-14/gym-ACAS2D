@@ -7,7 +7,7 @@ import gym_ACAS2D.settings as settings
 
 
 class ACAS2DEnv(gym.Env):
-    metadata = {'render.modes': ['human']}
+    # metadata = {'render.modes': ['human']}
 
     def __init__(self):
         self.game = ACAS2DGame(settings.WIDTH, settings.HEIGHT,

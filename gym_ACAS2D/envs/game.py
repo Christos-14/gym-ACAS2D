@@ -17,15 +17,9 @@ class ACAS2DGame:
 
         # Create the screen: WIDTH x HEIGHT
         self.screen = pygame.display.set_mode((settings.WIDTH, settings.HEIGHT))
-        # Game clock
-        self.clock = pygame.time.Clock()
-
-        # Load images
-        playerIMG = pygame.image.load(settings.PLAYER_IMG)
-        goalIMG = pygame.image.load(settings.GOAL_IMG)
-        trafficIMG = pygame.image.load(settings.TRAFFIC_IMG)
-        # Text font
-        font = pygame.font.Font(settings.FONT_NAME, settings.FONT_SIZE)
+        # # Game clock
+        # self.clock = pygame.time.Clock()
+        self.time = 0
 
         # Flags
         self.running = True    # Is the game running?
@@ -34,6 +28,13 @@ class ACAS2DGame:
 
         # ACAS2DGame mode: True for static, False for random
         self.static = static
+
+        # Load images
+        self.playerIMG = pygame.image.load(settings.PLAYER_IMG)
+        self.goalIMG = pygame.image.load(settings.GOAL_IMG)
+        self.trafficIMG = pygame.image.load(settings.TRAFFIC_IMG)
+        # Text font
+        self.font = pygame.font.Font(settings.FONT_NAME, settings.FONT_SIZE)
 
         if not static:
             # Set the player starting position at random, in the bottom part of the airspace
@@ -113,6 +114,7 @@ class ACAS2DGame:
         raise NotImplementedError
 
     def action(self, action):
+        self.time += 1
         raise NotImplementedError
 
     def evaluate(self):
@@ -123,4 +125,57 @@ class ACAS2DGame:
         raise self.check_goal() or self.detect_collisions()
 
     def view(self):
-        raise NotImplementedError
+        # Detect events
+        for event in pygame.event.get():
+            # Quit game
+            if event.type == pygame.QUIT:
+                self.running = False
+
+        # Change background colour to sky colour RGB value
+        self.screen.fill(settings.SKY_RGB)
+
+        # Place player in the game
+        self.screen.blit(self.playerIMG, (self.player.x - (settings.AIRCRAFT_SIZE / 2),
+                                          self.player.y - (settings.AIRCRAFT_SIZE / 2)))
+
+        # Place goal in the game
+        self.screen.blit(self.goalIMG, (self.goal_x - (settings.AIRCRAFT_SIZE / 2),
+                                        self.goal_y - (settings.AIRCRAFT_SIZE / 2)))
+
+        # Place traffic aircraft in the game
+        for t in self.traffic:
+            self.screen.blit(self.trafficIMG, (t.x - (settings.AIRCRAFT_SIZE / 2),
+                                               t.y - (settings.AIRCRAFT_SIZE / 2)))
+
+        # Draw collision circle around aircraft
+        pygame.draw.circle(self.screen, settings.GREEN_RGB, (self.player.x, self.player.y),
+                           settings.COLLISION_RADIUS, 1)
+        # for t in self.traffic:
+        #     pygame.draw.circle(self.screen, settings.RED_RGB, (t.x, t.y), settings.COLLISION_RADIUS, 1)
+
+        # Display minimum separation
+        min_separation = self.minimum_separation()
+        ms = self.font.render("Min. Separation: {}".format(round(min_separation, 3)), True, settings.FONT_RGB)
+        self.screen.blit(ms, (20, settings.HEIGHT - 20))
+
+        # Display 'time' (number of game loop iterations)
+        ts = self.font.render("Time steps: {}".format(self.time), True, settings.FONT_RGB)
+        self.screen.blit(ts, (round(settings.WIDTH / 2) - 50, settings.HEIGHT - 20))
+
+        # Display distance to target
+        dist_to_goal = self.distance_to_goal()
+        dg = self.font.render("Distance to goal: {}".format(round(dist_to_goal, 3)), True, settings.FONT_RGB)
+        self.screen.blit(dg, (settings.WIDTH - 200, settings.HEIGHT - 20))
+
+        # Detect collisions
+        if self.detect_collisions():
+            mes = self.font.render("Collision!", True, settings.FONT_RGB)
+            self.screen.blit(mes, (round(settings.WIDTH / 2) - 30, round(settings.HEIGHT / 2)))
+
+        # Check if player reached the goal
+        if self.check_goal():
+            mes = self.font.render("Goal reached!", True, settings.FONT_RGB)
+            self.screen.blit(mes, (round(settings.WIDTH / 2) - 40, round(settings.HEIGHT / 2)))
+
+        # Update the game screen
+        pygame.display.update()
