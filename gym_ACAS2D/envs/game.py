@@ -110,7 +110,8 @@ class ACAS2DGame:
         raise NotImplementedError
 
     def is_done(self):
-        raise NotImplementedError
+        # The game ends either when the player has reached the goal (win) or when there's a collision (lose)
+        raise self.check_goal() or self.detect_collisions()
 
     def view(self):
         raise NotImplementedError
