@@ -9,18 +9,33 @@ class ACAS2DEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self):
-        game = Game(settings.WIDTH, settings.HEIGHT,
-                    settings.N_TRAFFIC, settings.AIRCRAFT_SIZE, settings.COLLISION_RADIUS, settings.MEDIUM_SPEED,
-                    manual=False)
+        self.game = Game(settings.WIDTH, settings.HEIGHT,
+                         settings.N_TRAFFIC, settings.AIRCRAFT_SIZE,
+                         settings.COLLISION_RADIUS, settings.MEDIUM_SPEED,
+                         manual=False)
+        self.action_space = []
+        self.observation_space = []
 
     def step(self, action):
-        ...
+        self.game.action(action)
+        obs = self.game.observe()
+        reward = self.game.evaluate()
+        done = self.game.is_done()
+        # TODO: Add debugging info from the Game class
+        info = {}
+        return obs, reward, done, info
 
     def reset(self):
-        ...
+        del self.game
+        self.game = self.game = Game(settings.WIDTH, settings.HEIGHT,
+                                     settings.N_TRAFFIC, settings.AIRCRAFT_SIZE,
+                                     settings.COLLISION_RADIUS, settings.MEDIUM_SPEED,
+                                     manual=False)
+        obs = self.game.observe()
+        return obs
 
     def render(self, mode='human'):
-        ...
+        self.game.view()
 
     def close(self):
         ...

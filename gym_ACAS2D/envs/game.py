@@ -99,3 +99,18 @@ class Game:
             self.running = False
             self.win = True
         return goal
+
+    def observe(self):
+        raise NotImplementedError
+
+    def action(self, action):
+        raise NotImplementedError
+
+    def evaluate(self):
+        raise NotImplementedError
+
+    def is_done(self):
+        raise NotImplementedError
+
+    def view(self):
+        raise NotImplementedError
