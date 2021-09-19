@@ -1,11 +1,12 @@
 import random
 import math
 
+import gym_ACAS2D.settings as settings
+
 
 class Aircraft:
 
-    def __init__(self, size, x=None, y=None, speed=None, heading=None):
-        self.size = size
+    def __init__(self, x=None, y=None, speed=None, heading=None):
         self.x = x
         self.y = y
         self.speed = speed
@@ -30,13 +31,13 @@ class TrafficAircraft(Aircraft):
         # Make sure the aircraft stays on the screen
         if self.x < 0:
             self.x = 0
-        elif self.x + self.size > width:
-            self.x = width - self.size
+        elif self.x + settings.AIRCRAFT_SIZE > width:
+            self.x = width - settings.AIRCRAFT_SIZE
         if self.y < 0:
             self.y = 0
-        elif self.y + self.size > height:
-            self.y = height - self.size
+        elif self.y + settings.AIRCRAFT_SIZE > height:
+            self.y = height - settings.AIRCRAFT_SIZE
         # Update its heading to a random but opposite direction
-        h1 = (self.heading + 120) % 360
-        h2 = (self.heading + 240) % 360
+        h1 = (self.heading + settings.MIN_BOUNCE_ANGLE) % 360
+        h2 = (self.heading + settings.MAX_BOUNCE_ANGLE) % 360
         self.heading = random.randint(min(h1, h2), max(h1, h2))

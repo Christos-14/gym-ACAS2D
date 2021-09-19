@@ -21,9 +21,7 @@ if __name__ == '__main__':
     font = pygame.font.Font(settings.FONT_NAME, settings.FONT_SIZE)
 
     # Create game
-    game = ACAS2DGame(settings.WIDTH, settings.HEIGHT,
-                      settings.N_TRAFFIC, settings.AIRCRAFT_SIZE, settings.COLLISION_RADIUS, settings.MEDIUM_SPEED,
-                      manual=True)
+    game = ACAS2DGame(manual=True)
 
     # Game loop - keeps our screen active
     running = True
