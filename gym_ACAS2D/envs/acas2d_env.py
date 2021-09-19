@@ -1,4 +1,5 @@
 import gym
+import numpy as np
 from gym import error, spaces, utils
 from gym.utils import seeding
 from gym_ACAS2D.envs.game import ACAS2DGame
@@ -13,8 +14,24 @@ class ACAS2DEnv(gym.Env):
                                settings.N_TRAFFIC, settings.AIRCRAFT_SIZE,
                                settings.COLLISION_RADIUS, settings.MEDIUM_SPEED,
                                manual=False)
-        self.action_space = []
-        self.observation_space = []
+        # Observation space: (x, y, v, theta) state for the player and traffic aircraft and the goal position.
+        # Positions go from x=0 to x=WIDTH and from y=0 to y=HEIGHT
+        pos_lo = np.zeros((settings.N_TRAFFIC+2, 2))
+        pos_hi = np.ones((settings.N_TRAFFIC+2, 2))
+        pos_hi[:, 0] *= settings.WIDTH
+        pos_hi[:, 1] *= settings.HEIGHT
+        # Speeds go from v=0 to v=1.25*SPEED_MEDIUM
+        speed_min = np.zeros((settings.N_TRAFFIC+1, 1))
+        speed_max = np.ones((settings.N_TRAFFIC+1, 1)) * (settings.MEDIUM_SPEED * settings.MAX_SPEED_FACTOR)
+        # Headings go from theta=0 to theta = 360
+        head_min = np.zeros((settings.N_TRAFFIC+1, 1))
+        head_max = np.ones((settings.N_TRAFFIC+1, 1))*360
+        self.observation_space = spaces.Dict({"position": spaces.Box(low=pos_lo, high=pos_hi, dtype=np.float16),
+                                              "speed": spaces.Box(low=speed_min, high=speed_max, dtype=np.float16),
+                                              "heading": spaces.Box(low=head_min, high=head_max, dtype=np.float16)})
+        # Action space: (v, theta) combination set at time t
+        self.action_space = spaces.Dict({"speed": spaces.Box(low=speed_min, high=speed_max, dtype=np.float16),
+                                        "heading": spaces.Box(low=head_min, high=head_max, dtype=np.float16)})
 
     def step(self, action):
         self.game.action(action)
