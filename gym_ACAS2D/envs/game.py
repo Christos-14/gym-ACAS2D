@@ -4,7 +4,7 @@ import random
 from gym_ACAS2D.envs.aircraft import PlayerAircraft, TrafficAircraft
 
 
-class Game:
+class ACAS2DGame:
     def __init__(self, width, height, n_traffic, aircraft_size, collision_radius, medium_speed,
                  static=False,
                  manual=False):
@@ -23,7 +23,7 @@ class Game:
         self.win = None    # Did the player win or lose?
         self.manual = manual  # Is the player controlled manually?
 
-        # Game mode: True for static, False for random
+        # ACAS2DGame mode: True for static, False for random
         self.static = static
 
         if not static:
