@@ -11,6 +11,9 @@ def simulate():
         total_reward = 0
         # AI tries up to MAX_TRY times
         for t in range(settings.MAX_STEPS):
+            # Quit if the game window closes
+            if environment.quit:
+                return -1
             # Fixed action selection for now
             action = {"speed": settings.MEDIUM_SPEED,
                       "heading": random.uniform(0, 1) * 360}
@@ -23,8 +26,9 @@ def simulate():
             environment.render()
             # When episode is done, print reward
             if done:
-                print("Episode %d finished after %i time steps with total reward = %f." % (episode, t, total_reward))
+                print("Episode {:<3}: Time steps: {:<7} - Total Reward = {}".format(episode, t, total_reward))
                 break
+    return 0
 
 
 if __name__ == "__main__":

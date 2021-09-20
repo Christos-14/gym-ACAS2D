@@ -25,6 +25,7 @@ class ACAS2DGame:
         self.running = True    # Is the game running?
         self.win = None    # Did the player win or lose?
         self.manual = manual  # Is the player controlled manually?
+        self.quit = False  # Has the game window been closed?
 
         # ACAS2DGame mode: True for static, False for random
         self.static = static
@@ -173,7 +174,7 @@ class ACAS2DGame:
         for event in pygame.event.get():
             # Quit game
             if event.type == pygame.QUIT:
-                self.running = False
+                self.quit = True
 
         # Change background colour to sky colour RGB value
         self.screen.fill(settings.SKY_RGB)
