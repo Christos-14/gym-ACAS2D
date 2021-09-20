@@ -147,6 +147,7 @@ class ACAS2DGame:
                     t.bounce(settings.WIDTH, settings.HEIGHT)
 
     def evaluate(self):
+        # TODO: Implement reward function
         raise NotImplementedError
 
     def is_done(self):
@@ -188,8 +189,8 @@ class ACAS2DGame:
         self.screen.blit(ms, (20, settings.HEIGHT - 20))
 
         # Display 'time' (number of game loop iterations)
-        ts = self.font.render("Time steps: {}".format(self.time), True, settings.FONT_RGB)
-        self.screen.blit(ts, (round(settings.WIDTH / 2) - 50, settings.HEIGHT - 20))
+        st = self.font.render("Steps: {}".format(self.steps), True, settings.FONT_RGB)
+        self.screen.blit(st, (round(settings.WIDTH / 2) - 50, settings.HEIGHT - 20))
 
         # Display distance to target
         dist_to_goal = self.distance_to_goal()
