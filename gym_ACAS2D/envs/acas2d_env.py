@@ -44,10 +44,10 @@ class ACAS2DEnv(gym.Env):
 
     def reset(self):
         del self.game
-        self.game = self.game = ACAS2DGame(settings.WIDTH, settings.HEIGHT,
-                                           settings.N_TRAFFIC, settings.AIRCRAFT_SIZE,
-                                           settings.COLLISION_RADIUS, settings.MEDIUM_SPEED,
-                                           manual=False)
+        self.game = ACAS2DGame(settings.WIDTH, settings.HEIGHT,
+                               settings.N_TRAFFIC, settings.AIRCRAFT_SIZE,
+                               settings.COLLISION_RADIUS, settings.MEDIUM_SPEED,
+                               manual=False)
         obs = self.game.observe()
         return obs
 
