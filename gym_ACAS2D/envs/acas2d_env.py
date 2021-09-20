@@ -10,10 +10,7 @@ class ACAS2DEnv(gym.Env):
     # metadata = {'render.modes': ['human']}
 
     def __init__(self):
-        self.game = ACAS2DGame(settings.WIDTH, settings.HEIGHT,
-                               settings.N_TRAFFIC, settings.AIRCRAFT_SIZE,
-                               settings.COLLISION_RADIUS, settings.MEDIUM_SPEED,
-                               manual=False)
+        self.game = ACAS2DGame()
         # Observation space: (x, y, v, theta) state for the player and traffic aircraft and the goal position.
         # Positions go from x=0 to x=WIDTH and from y=0 to y=HEIGHT
         pos_lo = np.zeros((settings.N_TRAFFIC+2, 2))
@@ -44,10 +41,7 @@ class ACAS2DEnv(gym.Env):
 
     def reset(self):
         del self.game
-        self.game = ACAS2DGame(settings.WIDTH, settings.HEIGHT,
-                               settings.N_TRAFFIC, settings.AIRCRAFT_SIZE,
-                               settings.COLLISION_RADIUS, settings.MEDIUM_SPEED,
-                               manual=False)
+        self.game = ACAS2DGame()
         obs = self.game.observe()
         return obs
 

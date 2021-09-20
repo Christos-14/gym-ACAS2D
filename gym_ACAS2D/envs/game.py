@@ -162,7 +162,11 @@ class ACAS2DGame:
 
     def is_done(self):
         # The game ends either when the player has reached the goal (win) or when there's a collision (lose)
-        raise self.check_goal() or self.detect_collisions()
+        if self.check_goal() or self.detect_collisions():
+            self.win = (self.check_goal() and not self.detect_collisions())
+            self.running = False
+            return True
+        return False
 
     def view(self):
         # Detect events
