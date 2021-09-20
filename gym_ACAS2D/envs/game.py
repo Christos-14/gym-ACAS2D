@@ -111,7 +111,25 @@ class ACAS2DGame:
         return goal
 
     def observe(self):
-        raise NotImplementedError
+        # We create the dictionary of observations, as expected by the environment's observation_space
+        obs = {}
+        # Player position, speed and heading
+        pos = [[self.player.x, self.player.y]]
+        spd = [self.player.speed]
+        hed = [self.player.heading]
+        # Traffic positions, speeds and headings
+        for t in self.traffic:
+            pos.append([t.x, t.y])
+            spd.append(t.speed)
+            hed.append(t.heading)
+        # Goal position
+        pos.append([self.goal_x, self.goal_y])
+
+        obs["position"] = np.array(pos)
+        obs["speed"] = np.array(spd)
+        obs["heading"] = np.array(hed)
+
+        return obs
 
     def action(self, action):
         self.time += 1
