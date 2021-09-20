@@ -147,8 +147,18 @@ class ACAS2DGame:
                     t.bounce(settings.WIDTH, settings.HEIGHT)
 
     def evaluate(self):
-        # TODO: Implement reward function
-        raise NotImplementedError
+        reward = 0
+        # Penalise time spent to reach goal
+        reward += settings.REWARD_STEP
+        # Reward min_separation maintained
+        reward += settings.REWARD_MIN_SEPARATION_FACTOR * self.minimum_separation()
+        # Reward reaching the goal
+        if self.check_goal():
+            reward += settings.REWARD_GOAL
+        # Penalise collisions
+        if self.detect_collisions():
+            reward += settings.REWARD_COLLISION
+        return reward
 
     def is_done(self):
         # The game ends either when the player has reached the goal (win) or when there's a collision (lose)
