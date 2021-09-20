@@ -19,7 +19,7 @@ class ACAS2DGame:
         self.screen = pygame.display.set_mode((settings.WIDTH, settings.HEIGHT))
         # # Game clock
         # self.clock = pygame.time.Clock()
-        self.time = 0
+        self.steps = 0
 
         # Flags
         self.running = True    # Is the game running?
@@ -111,6 +111,8 @@ class ACAS2DGame:
         return goal
 
     def observe(self):
+        # Increase number of steps in the game (all steps start with an observation)
+        self.steps += 1
         # We create the dictionary of observations, as expected by the environment's observation_space
         obs = {}
         # Player position, speed and heading
@@ -132,8 +134,17 @@ class ACAS2DGame:
         return obs
 
     def action(self, action):
-        self.time += 1
-        raise NotImplementedError
+        # Update player speed and heading based on action taken
+        self.player.speed = action["speed"]
+        self.player.heading = action["heading"]
+        # Update player position based on that speed and heading
+        self.player.update_position()
+        # If the game is still running, update the traffic aircraft positions.
+        for t in self.traffic:
+            if self.running:
+                t.update_position()
+                if t.out_of_bounds(settings.WIDTH, settings.HEIGHT):
+                    t.bounce(settings.WIDTH, settings.HEIGHT)
 
     def evaluate(self):
         raise NotImplementedError
