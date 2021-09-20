@@ -1,5 +1,6 @@
 import gym
 import random
+import math
 import gym_ACAS2D.settings as settings
 
 
@@ -16,7 +17,8 @@ def simulate():
                 return -1
             # Fixed action selection for now
             action = {"speed": settings.MEDIUM_SPEED,
-                      "heading": random.uniform(0, 1) * 360}
+                      "heading": environment.game.heading_to_goal()}
+
             # Do action and get result
             next_state, reward, done, info = environment.step(action)
             total_reward += reward

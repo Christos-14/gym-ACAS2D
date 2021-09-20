@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import pygame
+import math
 
 from gym_ACAS2D.envs.aircraft import PlayerAircraft, TrafficAircraft
 import gym_ACAS2D.settings as settings
@@ -110,6 +111,14 @@ class ACAS2DGame:
             self.running = False
             self.win = True
         return goal
+
+    def heading_to_goal(self):
+        # The heading that would lead the player straight to the goal
+        dx = self.goal_x - self.player.x
+        dy = self.goal_y - self.player.y
+        rads = math.atan2(dy, dx) % (2*math.pi)
+        degs = math.degrees(rads)
+        return degs
 
     def observe(self):
         # Increase number of steps in the game (all steps start with an observation)
