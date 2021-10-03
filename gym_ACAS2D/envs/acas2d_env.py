@@ -15,22 +15,21 @@ class ACAS2DEnv(gym.Env):
         self.quit = False
         # Observation space: (x, y, v, theta) state for the player and traffic aircraft and the goal position.
         # Positions go from x=0 to x=WIDTH and from y=0 to y=HEIGHT
-        pos_lo = np.zeros((settings.N_TRAFFIC+2, 2))
-        pos_hi = np.ones((settings.N_TRAFFIC+2, 2))
-        pos_hi[:, 0] *= settings.WIDTH
-        pos_hi[:, 1] *= settings.HEIGHT
+        pos_lo = np.zeros((settings.N_TRAFFIC + 2) * 2, dtype=np.float32)
+        pos_hi = np.array([settings.WIDTH, settings.HEIGHT] * (settings.N_TRAFFIC + 2), dtype=np.float32)
         # Speeds go from v=0 to v=1.25*SPEED_MEDIUM
-        speed_min = np.zeros((settings.N_TRAFFIC+1, 1))
-        speed_max = np.ones((settings.N_TRAFFIC+1, 1)) * (settings.MEDIUM_SPEED * settings.MAX_SPEED_FACTOR)
+        speed_lo = np.ones((settings.N_TRAFFIC + 1), dtype=np.float32) * (settings.MEDIUM_SPEED * settings.MIN_SPEED_FACTOR)
+        speed_hi = np.ones((settings.N_TRAFFIC + 1), dtype=np.float32) * (settings.MEDIUM_SPEED * settings.MAX_SPEED_FACTOR)
         # Headings go from theta=0 to theta = 360
-        head_min = np.zeros((settings.N_TRAFFIC+1, 1))
-        head_max = np.ones((settings.N_TRAFFIC+1, 1))*360
+        head_lo = np.zeros((settings.N_TRAFFIC + 1), dtype=np.float32)
+        head_hi = np.ones((settings.N_TRAFFIC + 1), dtype=np.float32) * 360
         self.observation_space = spaces.Dict({"position": spaces.Box(low=pos_lo, high=pos_hi, dtype=np.float32),
-                                              "speed": spaces.Box(low=speed_min, high=speed_max, dtype=np.float32),
-                                              "heading": spaces.Box(low=head_min, high=head_max, dtype=np.float32)})
+                                              "speed": spaces.Box(low=speed_lo, high=speed_hi, dtype=np.float32),
+                                              "heading": spaces.Box(low=head_lo, high=head_hi, dtype=np.float32)})
         # Action space: (v, theta) combination set at time t
-        self.action_space = spaces.Dict({"speed": spaces.Box(low=speed_min, high=speed_max, dtype=np.float32),
-                                        "heading": spaces.Box(low=head_min, high=head_max, dtype=np.float32)})
+        action_lo = np.array([(settings.MEDIUM_SPEED * settings.MIN_SPEED_FACTOR), 0])
+        action_hi = np.array([(settings.MEDIUM_SPEED * settings.MAX_SPEED_FACTOR), 360])
+        self.action_space = spaces.Box(low=action_lo, high=action_hi, dtype=np.float32)
 
     def step(self, action):
         self.game.action(action)

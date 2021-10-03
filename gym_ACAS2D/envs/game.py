@@ -40,10 +40,11 @@ class ACAS2DGame:
 
         if not static:
             # Set the player starting position at random, in the bottom part of the airspace
-            # Set the player starting heading and speed to zero
+            # Set the player starting heading and speed
             player_x = random.randint(0, settings.WIDTH - settings.AIRCRAFT_SIZE)
             player_y = random.randint(round(4 * settings.HEIGHT / 5), settings.HEIGHT - settings.AIRCRAFT_SIZE)
-            self.player = PlayerAircraft(x=player_x, y=player_y, speed=0, heading=0)
+            player_speed = settings.MEDIUM_SPEED
+            self.player = PlayerAircraft(x=player_x, y=player_y, speed=player_speed, heading=0)
 
             # Set the traffic aircraft positions, headings and speeds at random, in the middle part of the airspace.
             self.traffic = []
@@ -52,7 +53,7 @@ class ACAS2DGame:
                 t_x = random.randint(0, settings.WIDTH - settings.AIRCRAFT_SIZE)
                 t_y = random.randint(0, round(3 * settings.HEIGHT / 5))
                 # Random speed: low (75%), medium (100%), or high (125%)
-                t_speed = (random.randint(3, 6) / 4) * settings.MEDIUM_SPEED
+                t_speed = random.uniform(settings.MIN_SPEED_FACTOR, settings.MAX_SPEED_FACTOR) * settings.MEDIUM_SPEED
                 # Random heading: 0..359 degrees
                 t_heading = random.randint(0, 360)
                 self.traffic.append(TrafficAircraft(x=t_x, y=t_y, speed=t_speed, heading=t_heading))
@@ -99,6 +100,14 @@ class ACAS2DGame:
                 break
         return collision
 
+    def check_out_of_bounds(self):
+        # Player and goal positions as np.array
+        out_of_bounds = (self.player.x < 0) \
+                        or (self.player.x > settings.WIDTH) \
+                        or (self.player.y < 0) \
+                        or (self.player.y > settings.HEIGHT)
+        return out_of_bounds
+
     def check_goal(self, d_reached=20):
         # Player and goal positions as np.array
         p = np.array((self.player.x, self.player.y))
@@ -121,32 +130,36 @@ class ACAS2DGame:
         return degs
 
     def observe(self):
+
         # Increase number of steps in the game (all steps start with an observation)
         self.steps += 1
+
         # We create the dictionary of observations, as expected by the environment's observation_space
         obs = {}
         # Player position, speed and heading
-        pos = [[self.player.x, self.player.y]]
+        pos = [self.player.x, self.player.y]
         spd = [self.player.speed]
         hed = [self.player.heading]
         # Traffic positions, speeds and headings
         for t in self.traffic:
-            pos.append([t.x, t.y])
+            pos.append(t.x)
+            pos.append(t.y)
             spd.append(t.speed)
             hed.append(t.heading)
         # Goal position
-        pos.append([self.goal_x, self.goal_y])
+        pos.append(self.goal_x)
+        pos.append(self.goal_y)
 
-        obs["position"] = np.array(pos)
-        obs["speed"] = np.array(spd)
-        obs["heading"] = np.array(hed)
+        obs["position"] = np.array(pos).astype(np.float32)
+        obs["speed"] = np.array(spd).astype(np.float32)
+        obs["heading"] = np.array(hed).astype(np.float32)
 
         return obs
 
     def action(self, action):
         # Update player speed and heading based on action taken
-        self.player.speed = action["speed"]
-        self.player.heading = action["heading"]
+        self.player.speed = action[0]
+        self.player.heading = action[1]
         # Update player position based on that speed and heading
         self.player.update_position()
         # If the game is still running, update the traffic aircraft positions.
@@ -165,15 +178,16 @@ class ACAS2DGame:
         # Reward reaching the goal
         if self.check_goal():
             reward += settings.REWARD_GOAL
-        # Penalise collisions
-        if self.detect_collisions():
+        # Penalise collisions and getting out of bounds.
+        if self.detect_collisions() or self.check_out_of_bounds():
             reward += settings.REWARD_COLLISION
         return reward
 
     def is_done(self):
         # The game ends either when the player has reached the goal (win) or when there's a collision (lose)
-        if self.check_goal() or self.detect_collisions():
-            self.win = (self.check_goal() and not self.detect_collisions())
+        if self.check_goal() or self.detect_collisions() or self.check_out_of_bounds():
+            self.win = (self.check_goal()
+                        and not (self.detect_collisions()) or self.check_out_of_bounds())
             self.running = False
             return True
         return False
