@@ -1,6 +1,5 @@
 import gym
-import random
-import math
+import numpy as np
 import gym_ACAS2D.settings as settings
 
 
@@ -16,8 +15,8 @@ def simulate():
             if environment.quit:
                 return -1
             # Fixed action selection for now
-            action = {"speed": settings.MEDIUM_SPEED,
-                      "heading": environment.game.heading_to_goal()}
+            action = np.array([settings.MEDIUM_SPEED,
+                               environment.game.heading_to_goal()])
 
             # Do action and get result
             next_state, reward, done, info = environment.step(action)
