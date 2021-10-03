@@ -1,21 +1,21 @@
 import gym
 import numpy as np
-import gym_ACAS2D.settings as settings
+from gym_ACAS2D.settings import *
 
 
 def simulate():
-    for episode in range(settings.EPISODES):
+    for episode in range(EPISODES):
         # Init environment
         environment = gym.make("ACAS2D-v0")
         state = environment.reset()
         total_reward = 0
         # AI tries up to MAX_TRY times
-        for t in range(settings.MAX_STEPS):
+        for t in range(MAX_STEPS):
             # Quit if the game window closes
             if environment.quit:
                 return -1
             # Fixed action selection for now
-            action = np.array([settings.MEDIUM_SPEED,
+            action = np.array([MEDIUM_SPEED,
                                environment.game.heading_to_goal()])
 
             # Do action and get result
