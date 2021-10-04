@@ -26,7 +26,12 @@ if __name__ == '__main__':
     # Game loop - keeps our screen active
     running = True
     time_steps = 0
+    clock = pygame.time.Clock()
+
     while running:
+
+        clock.tick(FPS)
+
         # Count loop iterations (frames?)
         if game.running:
             time_steps += 1

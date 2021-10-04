@@ -1,16 +1,22 @@
 import gym
+import pygame
 import numpy as np
 from gym_ACAS2D.settings import *
 
 
 def simulate():
+
     for episode in range(EPISODES):
         # Init environment
         environment = gym.make("ACAS2D-v0")
         state = environment.reset()
         total_reward = 0
+        clock = pygame.time.Clock()
         # AI tries up to MAX_TRY times
         for t in range(MAX_STEPS):
+            # Clock
+            clock.tick(FPS)
+
             # Quit if the game window closes
             if environment.quit:
                 return -1
