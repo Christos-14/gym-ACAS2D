@@ -18,8 +18,9 @@ class ACAS2DGame:
 
         # Create the screen: WIDTH x HEIGHT
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-        # # Game clock
-        # self.clock = pygame.time.Clock()
+        # Game clock
+        self.clock = pygame.time.Clock()
+        # Time steps counter
         self.steps = 0
 
         # Flags

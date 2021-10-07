@@ -10,23 +10,20 @@ from gym_ACAS2D.settings import *
 def simulate():
 
     for episode in range(EPISODES):
-        # Init environment
+
+        # Initialise the  environment
         environment = gym.make("ACAS2D-v0")
         state = environment.reset()
+
         total_reward = 0
-        clock = pygame.time.Clock()
         # AI tries up to MAX_TRY times
         for t in range(MAX_STEPS):
-            # Clock
-            clock.tick(FPS)
-
             # Quit if the game window closes
             if environment.quit:
                 return -1
             # Fixed action selection for now
-            # action = np.array([random.uniform(-ACC_LAT_LIMIT, ACC_LAT_LIMIT)])
             # action = np.array([0])
-            action = np.array([-ACC_LAT_LIMIT * np.sin(2 * math.pi * (t / (FPS)))])
+            action = np.array([-ACC_LAT_LIMIT * np.sin(2 * math.pi * (t / FPS))])
 
             # Do action and get result
             next_state, reward, done, info = environment.step(action)

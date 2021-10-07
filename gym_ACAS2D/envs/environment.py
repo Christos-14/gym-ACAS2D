@@ -24,9 +24,15 @@ class ACAS2DEnv(gym.Env):
         self.action_space = spaces.Box(low=action_lo, high=action_hi, dtype=np.float32)
 
     def step(self, action):
+        # Game clock tick
+        self.game.clock.tick(FPS)
+        # Take an action in the environment
         self.game.action(action)
+        # Observe the environment
         obs = self.game.observe()
+        # Retrieve reward
         reward = self.game.evaluate()
+        # Check for termination
         done = self.game.is_done()
         # TODO: Add debugging info from the ACAS2DGame class
         info = {}
