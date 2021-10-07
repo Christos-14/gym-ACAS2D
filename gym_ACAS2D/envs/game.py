@@ -23,11 +23,13 @@ class ACAS2DGame:
         # Time steps counter
         self.steps = 0
 
-        # Flags
-        self.running = True    # Is the game running?
-        self.win = None    # Did the player win or lose?
+        # Game status flags
         self.manual = manual  # Is the player controlled manually?
+        self.running = True    # Is the game running?
         self.quit = False  # Has the game window been closed?
+
+        # Game outcome
+        self.outcome = None
 
         # Load images
         self.playerIMG = pygame.image.load(PLAYER_IMG)
@@ -172,12 +174,22 @@ class ACAS2DGame:
         return reward
 
     def is_done(self):
-        # The game ends either when the player has reached the goal (win) or when there's a collision (lose)
-        if self.check_goal() or self.detect_collisions() or self.check_out_of_bounds():
-            self.win = (self.check_goal()
-                        and not (self.detect_collisions()) or self.check_out_of_bounds())
+        # Check for Timeout: if max number of steps has been reached
+        if self.steps == MAX_STEPS:
             self.running = False
+            self.outcome = 3
             return True
+        # Check for collisions
+        if self.detect_collisions():
+            self.running = False
+            self.outcome = 2
+            return True
+        # Check if we have reached the goal
+        if self.check_goal():
+            self.running = False
+            self.outcome = 1
+            return True
+        # Otherwise, the game is on
         return False
 
     def view(self):
