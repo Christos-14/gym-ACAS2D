@@ -2,7 +2,7 @@ from scipy.constants import g
 
 
 # WINDOW CONSTANTS
-WIDTH = 800
+WIDTH = 600
 HEIGHT = 600
 FPS = 1000
 CAPTION = "ACAS-2D"
@@ -14,7 +14,7 @@ GREEN_RGB = (0, 255, 0)
 RED_RGB = (255, 0, 0)
 
 # AIRCRAFT CONSTANTS
-N_TRAFFIC = 8
+N_TRAFFIC = 4
 AIRCRAFT_SIZE = 24  # images used are 24x24 pixels
 COLLISION_RADIUS = 48
 

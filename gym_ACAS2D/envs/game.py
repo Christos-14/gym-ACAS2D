@@ -1,7 +1,7 @@
 import numpy as np
 import random
 import pygame
-# import math
+import math
 
 from gym_ACAS2D.envs.aircraft import PlayerAircraft, TrafficAircraft
 from gym_ACAS2D.settings import *
@@ -39,12 +39,19 @@ class ACAS2DGame:
         self.font = pygame.font.Font(FONT_NAME, FONT_SIZE)
 
         if not static:
+
+            # Set the goal position at random, in the top part of the airspace.
+            self.goal_x = random.randint(AIRCRAFT_SIZE, WIDTH - AIRCRAFT_SIZE)
+            self.goal_y = random.randint(AIRCRAFT_SIZE, round(HEIGHT / 5))
+
             # Set the player starting position at random, in the bottom part of the airspace
             # Set the player starting psi and v_air
             player_x = random.randint(0, WIDTH - AIRCRAFT_SIZE)
             player_y = random.randint(round(4 * HEIGHT / 5), HEIGHT - AIRCRAFT_SIZE)
             player_speed = AIRSPEED
             self.player = PlayerAircraft(x=player_x, y=player_y, v_air=player_speed, psi=0)
+            # Set the initial heading towards the goal; Assumption is that a path has been provided to the agent.
+            self.player.psi = self.heading_to_goal()
 
             # Set the traffic aircraft positions, headings and speeds at random, in the middle part of the airspace.
             self.traffic = []
@@ -58,9 +65,7 @@ class ACAS2DGame:
                 t_heading = random.randint(0, 360)
                 self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
 
-            # Set the goal position at random, in the top part of the airspace.
-            self.goal_x = random.randint(AIRCRAFT_SIZE, WIDTH - AIRCRAFT_SIZE)
-            self.goal_y = random.randint(AIRCRAFT_SIZE, round(HEIGHT / 5))
+
 
         else:
             raise NotImplementedError
@@ -121,13 +126,13 @@ class ACAS2DGame:
             self.win = True
         return goal
 
-    # def heading_to_goal(self):
-    #     # The psi that would lead the player straight to the goal
-    #     dx = self.goal_x - self.player.x
-    #     dy = self.goal_y - self.player.y
-    #     rads = math.atan2(dy, dx) % (2*math.pi)
-    #     degs = math.degrees(rads)
-    #     return degs
+    def heading_to_goal(self):
+        # The psi that would lead the player straight to the goal
+        dx = self.goal_x - self.player.x
+        dy = self.goal_y - self.player.y
+        rads = math.atan2(dy, dx) % (2*math.pi)
+        degs = math.degrees(rads)
+        return degs
 
     def observe(self):
 

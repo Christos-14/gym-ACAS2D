@@ -1,3 +1,6 @@
+import math
+import random
+
 import gym
 import pygame
 import numpy as np
@@ -21,7 +24,9 @@ def simulate():
             if environment.quit:
                 return -1
             # Fixed action selection for now
-            action = np.array([0])
+            # action = np.array([random.uniform(-ACC_LAT_LIMIT, ACC_LAT_LIMIT)])
+            # action = np.array([0])
+            action = np.array([-ACC_LAT_LIMIT * np.sin(2 * math.pi * (t / (FPS)))])
 
             # Do action and get result
             next_state, reward, done, info = environment.step(action)
