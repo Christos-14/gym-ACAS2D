@@ -59,7 +59,7 @@ class ACAS2DGame:
             t_y = random.randint(0, round(3 * HEIGHT / 5))
             # Random v_air: low (75%), medium (100%), or high (125%)
             t_speed = AIRSPEED
-            # Random psi: 0..359 degrees
+            # Random psi: 0..360 degrees
             t_heading = random.randint(0, 360)
             self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
 
@@ -93,8 +93,6 @@ class ACAS2DGame:
             # If the distance is less than the collision radius, player reached the goal
             if d < COLLISION_RADIUS:
                 collision = True
-                self.running = False
-                self.win = False
                 break
         return collision
 
