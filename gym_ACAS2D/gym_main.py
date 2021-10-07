@@ -21,8 +21,7 @@ def simulate():
             if environment.quit:
                 return -1
             # Fixed action selection for now
-            action = np.array([MEDIUM_SPEED,
-                               environment.game.heading_to_goal()])
+            action = np.array([0])
 
             # Do action and get result
             next_state, reward, done, info = environment.step(action)

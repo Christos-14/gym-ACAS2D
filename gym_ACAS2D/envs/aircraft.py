@@ -6,16 +6,23 @@ from gym_ACAS2D.settings import *
 
 class Aircraft:
 
-    def __init__(self, x=None, y=None, speed=None, heading=None):
+    def __init__(self, x, y, v_air, psi, psi_dot=0, a_lat=0):
         self.x = x
         self.y = y
-        self.speed = speed
-        self.heading = heading
+        self.v_air = v_air
+        self.psi = psi
+        self.psi_dot = psi_dot
+        self.a_lat = a_lat
 
-    def update_position(self):
-        heading_rad = (self.heading / 360.0) * 2 * math.pi
-        self.x = self.x + (self.speed * math.cos(heading_rad))
-        self.y = self.y + (self.speed * math.sin(heading_rad))
+    def update_state(self):
+        # Rate of heading angle
+        self.psi_dot = self.a_lat / self.v_air
+        # Heading angle
+        self.psi = self.psi + (self.psi_dot * (1 / FPS))
+        psi_rad = (self.psi / 360.0) * 2 * math.pi
+        # Position
+        self.x = self.x + (self.v_air * math.cos(psi_rad))
+        self.y = self.y + (self.v_air * math.sin(psi_rad))
 
     def out_of_bounds(self, width, height):
         return self.x < 0 or self.x > width or self.y < 0 or self.y > height
@@ -37,7 +44,7 @@ class TrafficAircraft(Aircraft):
             self.y = 0
         elif self.y + AIRCRAFT_SIZE > height:
             self.y = height - AIRCRAFT_SIZE
-        # Update its heading to a random but opposite direction
-        h1 = (self.heading + MIN_BOUNCE_ANGLE) % 360
-        h2 = (self.heading + MAX_BOUNCE_ANGLE) % 360
-        self.heading = random.randint(min(h1, h2), max(h1, h2))
+        # Update its psi to a random but opposite direction
+        h1 = (self.psi + MIN_BOUNCE_ANGLE) % 360
+        h2 = (self.psi + MAX_BOUNCE_ANGLE) % 360
+        self.psi = random.randint(min(h1, h2), max(h1, h2))

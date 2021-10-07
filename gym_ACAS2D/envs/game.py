@@ -1,7 +1,7 @@
 import numpy as np
 import random
 import pygame
-import math
+# import math
 
 from gym_ACAS2D.envs.aircraft import PlayerAircraft, TrafficAircraft
 from gym_ACAS2D.settings import *
@@ -40,11 +40,11 @@ class ACAS2DGame:
 
         if not static:
             # Set the player starting position at random, in the bottom part of the airspace
-            # Set the player starting heading and speed
+            # Set the player starting psi and v_air
             player_x = random.randint(0, WIDTH - AIRCRAFT_SIZE)
             player_y = random.randint(round(4 * HEIGHT / 5), HEIGHT - AIRCRAFT_SIZE)
-            player_speed = MEDIUM_SPEED
-            self.player = PlayerAircraft(x=player_x, y=player_y, speed=player_speed, heading=0)
+            player_speed = AIRSPEED
+            self.player = PlayerAircraft(x=player_x, y=player_y, v_air=player_speed, psi=0)
 
             # Set the traffic aircraft positions, headings and speeds at random, in the middle part of the airspace.
             self.traffic = []
@@ -52,11 +52,11 @@ class ACAS2DGame:
                 # Random position in the mid part of the airspace
                 t_x = random.randint(0, WIDTH - AIRCRAFT_SIZE)
                 t_y = random.randint(0, round(3 * HEIGHT / 5))
-                # Random speed: low (75%), medium (100%), or high (125%)
-                t_speed = random.uniform(MIN_SPEED_FACTOR, MAX_SPEED_FACTOR) * MEDIUM_SPEED
-                # Random heading: 0..359 degrees
+                # Random v_air: low (75%), medium (100%), or high (125%)
+                t_speed = AIRSPEED
+                # Random psi: 0..359 degrees
                 t_heading = random.randint(0, 360)
-                self.traffic.append(TrafficAircraft(x=t_x, y=t_y, speed=t_speed, heading=t_heading))
+                self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
 
             # Set the goal position at random, in the top part of the airspace.
             self.goal_x = random.randint(AIRCRAFT_SIZE, WIDTH - AIRCRAFT_SIZE)
@@ -78,10 +78,10 @@ class ACAS2DGame:
 
     def distance_to_goal(self):
         # Player and goal positions as np.array
-        p = np.array((self.player.x, self.player.y))
-        g = np.array((self.goal_x, self.goal_y))
+        pl = np.array((self.player.x, self.player.y))
+        gl = np.array((self.goal_x, self.goal_y))
         # Euclidean distance between player and goal
-        d = np.linalg.norm(p - g, 2)
+        d = np.linalg.norm(pl - gl, 2)
         return d
 
     def detect_collisions(self):
@@ -110,10 +110,10 @@ class ACAS2DGame:
 
     def check_goal(self, d_reached=20):
         # Player and goal positions as np.array
-        p = np.array((self.player.x, self.player.y))
-        g = np.array((self.goal_x, self.goal_y))
+        pl = np.array((self.player.x, self.player.y))
+        gl = np.array((self.goal_x, self.goal_y))
         # Euclidean distance between player and goal
-        d = np.linalg.norm(p-g, 2)
+        d = np.linalg.norm(pl-gl, 2)
         # If the distance is less than the collision radius, player reached the goal
         goal = d < d_reached
         if goal:
@@ -121,51 +121,43 @@ class ACAS2DGame:
             self.win = True
         return goal
 
-    def heading_to_goal(self):
-        # The heading that would lead the player straight to the goal
-        dx = self.goal_x - self.player.x
-        dy = self.goal_y - self.player.y
-        rads = math.atan2(dy, dx) % (2*math.pi)
-        degs = math.degrees(rads)
-        return degs
+    # def heading_to_goal(self):
+    #     # The psi that would lead the player straight to the goal
+    #     dx = self.goal_x - self.player.x
+    #     dy = self.goal_y - self.player.y
+    #     rads = math.atan2(dy, dx) % (2*math.pi)
+    #     degs = math.degrees(rads)
+    #     return degs
 
     def observe(self):
 
         # Increase number of steps in the game (all steps start with an observation)
         self.steps += 1
 
-        # We create the dictionary of observations, as expected by the environment's observation_space
-        obs = {}
-        # Player position, speed and heading
+        # Player position
         pos = [self.player.x, self.player.y]
-        spd = [self.player.speed]
-        hed = [self.player.heading]
-        # Traffic positions, speeds and headings
+        # Traffic positions
         for t in self.traffic:
             pos.append(t.x)
             pos.append(t.y)
-            spd.append(t.speed)
-            hed.append(t.heading)
         # Goal position
         pos.append(self.goal_x)
         pos.append(self.goal_y)
 
-        obs["position"] = np.array(pos).astype(np.float32)
-        obs["speed"] = np.array(spd).astype(np.float32)
-        obs["heading"] = np.array(hed).astype(np.float32)
+        # Observation
+        obs = np.array(pos).astype(np.float32)
 
         return obs
 
     def action(self, action):
-        # Update player speed and heading based on action taken
-        self.player.speed = action[0]
-        self.player.heading = action[1]
-        # Update player position based on that speed and heading
-        self.player.update_position()
+        # Update player a_lat based on action taken
+        self.player.a_lat = action[0]
+        # Update player position based on that v_air and psi
+        self.player.update_state()
         # If the game is still running, update the traffic aircraft positions.
         for t in self.traffic:
             if self.running:
-                t.update_position()
+                t.update_state()
                 if t.out_of_bounds(WIDTH, HEIGHT):
                     t.bounce(WIDTH, HEIGHT)
 

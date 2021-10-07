@@ -46,7 +46,7 @@ if __name__ == '__main__':
         if game.manual:
             # Variables to track manual motion control inputs
             delta_x, delta_y = 0, 0
-            playerStep = 2 * MEDIUM_SPEED
+            playerStep = AIRSPEED
             # stores keys pressed
             keys = pygame.key.get_pressed()
 
@@ -94,7 +94,7 @@ if __name__ == '__main__':
         # Place traffic aircraft in the game
         for t in game.traffic:
             if game.running:
-                t.update_position()
+                t.update_state()
                 if t.out_of_bounds(WIDTH, HEIGHT):
                     t.bounce(WIDTH, HEIGHT)
             screen.blit(trafficIMG, (t.x - (AIRCRAFT_SIZE/2), t.y - (AIRCRAFT_SIZE/2)))
