@@ -8,7 +8,7 @@ from gym_ACAS2D.settings import *
 
 
 class ACAS2DGame:
-    def __init__(self, static=False, manual=False):
+    def __init__(self, manual=False):
 
         # Initialize PyGame
         pygame.init()
@@ -28,9 +28,6 @@ class ACAS2DGame:
         self.manual = manual  # Is the player controlled manually?
         self.quit = False  # Has the game window been closed?
 
-        # ACAS2DGame mode: True for static, False for random
-        self.static = static
-
         # Load images
         self.playerIMG = pygame.image.load(PLAYER_IMG)
         self.goalIMG = pygame.image.load(GOAL_IMG)
@@ -38,37 +35,30 @@ class ACAS2DGame:
         # Text font
         self.font = pygame.font.Font(FONT_NAME, FONT_SIZE)
 
-        if not static:
+        # Set the goal position at random, in the top part of the airspace.
+        self.goal_x = random.randint(AIRCRAFT_SIZE, WIDTH - AIRCRAFT_SIZE)
+        self.goal_y = random.randint(AIRCRAFT_SIZE, round(HEIGHT / 5))
 
-            # Set the goal position at random, in the top part of the airspace.
-            self.goal_x = random.randint(AIRCRAFT_SIZE, WIDTH - AIRCRAFT_SIZE)
-            self.goal_y = random.randint(AIRCRAFT_SIZE, round(HEIGHT / 5))
+        # Set the player starting position at random, in the bottom part of the airspace
+        # Set the player starting psi and v_air
+        player_x = random.randint(0, WIDTH - AIRCRAFT_SIZE)
+        player_y = random.randint(round(4 * HEIGHT / 5), HEIGHT - AIRCRAFT_SIZE)
+        player_speed = AIRSPEED
+        self.player = PlayerAircraft(x=player_x, y=player_y, v_air=player_speed, psi=0)
+        # Set the initial heading towards the goal; Assumption is that a path has been provided to the agent.
+        self.player.psi = self.heading_to_goal()
 
-            # Set the player starting position at random, in the bottom part of the airspace
-            # Set the player starting psi and v_air
-            player_x = random.randint(0, WIDTH - AIRCRAFT_SIZE)
-            player_y = random.randint(round(4 * HEIGHT / 5), HEIGHT - AIRCRAFT_SIZE)
-            player_speed = AIRSPEED
-            self.player = PlayerAircraft(x=player_x, y=player_y, v_air=player_speed, psi=0)
-            # Set the initial heading towards the goal; Assumption is that a path has been provided to the agent.
-            self.player.psi = self.heading_to_goal()
-
-            # Set the traffic aircraft positions, headings and speeds at random, in the middle part of the airspace.
-            self.traffic = []
-            for t in range(N_TRAFFIC):
-                # Random position in the mid part of the airspace
-                t_x = random.randint(0, WIDTH - AIRCRAFT_SIZE)
-                t_y = random.randint(0, round(3 * HEIGHT / 5))
-                # Random v_air: low (75%), medium (100%), or high (125%)
-                t_speed = AIRSPEED
-                # Random psi: 0..359 degrees
-                t_heading = random.randint(0, 360)
-                self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
-
-
-
-        else:
-            raise NotImplementedError
+        # Set the traffic aircraft positions, headings and speeds at random, in the middle part of the airspace.
+        self.traffic = []
+        for t in range(N_TRAFFIC):
+            # Random position in the mid part of the airspace
+            t_x = random.randint(0, WIDTH - AIRCRAFT_SIZE)
+            t_y = random.randint(0, round(3 * HEIGHT / 5))
+            # Random v_air: low (75%), medium (100%), or high (125%)
+            t_speed = AIRSPEED
+            # Random psi: 0..359 degrees
+            t_heading = random.randint(0, 360)
+            self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
 
     def minimum_separation(self):
         distances = []
