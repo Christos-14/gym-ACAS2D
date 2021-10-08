@@ -14,14 +14,14 @@ class ACAS2DEnv(gym.Env):
         self.game = ACAS2DGame()
 
         # Observation space: (x, y, v_air, psi) for player, goal and traffic aircraft.
-        lo = np.array([[0]*(MAX_TRAFFIC+2),                                 # min x
-                       [0]*(MAX_TRAFFIC+2),                                 # min y
-                       [AIRSPEED_FACTOR_MIN * AIRSPEED] * (MAX_TRAFFIC+2),  # min V_air
-                       [0]*(MAX_TRAFFIC+2)])                                # min psi
-        hi = np.array([[WIDTH]*(MAX_TRAFFIC+2),                             # max x
-                       [HEIGHT]*(MAX_TRAFFIC+2),                            # max y
-                       [AIRSPEED_FACTOR_MAX * AIRSPEED] * (MAX_TRAFFIC+2),  # max V_air
-                       [360]*(MAX_TRAFFIC+2)])                              # max psi
+        lo = np.array([[0]*(MAX_TRAFFIC+2),
+                       [0]*(MAX_TRAFFIC+2),
+                       [AIRSPEED_FACTOR_MIN * AIRSPEED] * (MAX_TRAFFIC+2),
+                       [0]*(MAX_TRAFFIC+2)])
+        hi = np.array([[WIDTH]*(MAX_TRAFFIC+2),
+                       [HEIGHT]*(MAX_TRAFFIC+2),
+                       [AIRSPEED_FACTOR_MAX * AIRSPEED] * (MAX_TRAFFIC+2),
+                       [360]*(MAX_TRAFFIC+2)])
         self.observation_space = spaces.Box(low=lo, high=hi, dtype=np.float32)
 
         # Action space: (lateral acceleration) combination set at time t

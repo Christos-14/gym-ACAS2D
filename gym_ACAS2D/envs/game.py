@@ -60,8 +60,8 @@ class ACAS2DGame:
             # Random position in the mid part of the airspace
             t_x = random.randint(0, WIDTH - AIRCRAFT_SIZE)
             t_y = random.randint(0, round(3 * HEIGHT / 5))
-            # Random v_air: low (75%), medium (100%), or high (125%)
-            t_speed = AIRSPEED
+            # Random v_air
+            t_speed = random.uniform(AIRSPEED_FACTOR_MIN, AIRSPEED_FACTOR_MAX) * AIRSPEED
             # Random psi: 0..360 degrees
             t_heading = random.randint(0, 360)
             self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
@@ -107,14 +107,14 @@ class ACAS2DGame:
                         or (self.player.y > HEIGHT)
         return out_of_bounds
 
-    def check_goal(self, d_reached=20):
+    def check_goal(self):
         # Player and goal positions as np.array
         pl = np.array((self.player.x, self.player.y))
         gl = np.array((self.goal_x, self.goal_y))
         # Euclidean distance between player and goal
         d = np.linalg.norm(pl-gl, 2)
         # If the distance is less than the collision radius, player reached the goal
-        goal = d < d_reached
+        goal = d < GOAL_RADIUS
         return goal
 
     def heading_to_goal(self):
