@@ -51,9 +51,12 @@ class ACAS2DGame:
         # Set the initial heading towards the goal; Assumption is that a path has been provided to the agent.
         self.player.psi = self.heading_to_goal()
 
+        # Number of traffic aircraft
+        self.num_traffic = random.randint(MIN_TRAFFIC, MAX_TRAFFIC)
+
         # Set the traffic aircraft positions, headings and speeds at random, in the middle part of the airspace.
         self.traffic = []
-        for t in range(N_TRAFFIC):
+        for t in range(self.num_traffic):
             # Random position in the mid part of the airspace
             t_x = random.randint(0, WIDTH - AIRCRAFT_SIZE)
             t_y = random.randint(0, round(3 * HEIGHT / 5))
@@ -112,9 +115,6 @@ class ACAS2DGame:
         d = np.linalg.norm(pl-gl, 2)
         # If the distance is less than the collision radius, player reached the goal
         goal = d < d_reached
-        if goal:
-            self.running = False
-            self.win = True
         return goal
 
     def heading_to_goal(self):
@@ -130,18 +130,32 @@ class ACAS2DGame:
         # Increase number of steps in the game (all steps start with an observation)
         self.steps += 1
 
-        # Player position
-        pos = [self.player.x, self.player.y]
-        # Traffic positions
+        # Observation: Array 4 x (MAX_TRAFFIC+2)
+        # Rows -> x, y, v_air, psi
+        # Cols -> player|goal|traffic|padding
+
+        # Player and goal
+        obs_x = [self.player.x, self.goal_x]
+        obs_y = [self.player.y, self.goal_y]
+        obs_v = [self.player.v_air, 0]
+        obs_h = [self.player.psi, 0]
+        # Traffic aircraft
         for t in self.traffic:
-            pos.append(t.x)
-            pos.append(t.y)
-        # Goal position
-        pos.append(self.goal_x)
-        pos.append(self.goal_y)
+            obs_x.append(t.x)
+            obs_y.append(t.y)
+            obs_v.append(t.v_air)
+            obs_h.append(t.psi)
+        # Padding with zeros
+        obs_x += ([0]*(MAX_TRAFFIC-self.num_traffic))
+        obs_y += ([0]*(MAX_TRAFFIC-self.num_traffic))
+        obs_v += ([0]*(MAX_TRAFFIC-self.num_traffic))
+        obs_h += ([0]*(MAX_TRAFFIC-self.num_traffic))
 
         # Observation
-        obs = np.array(pos).astype(np.float32)
+        obs = np.array([obs_x,
+                        obs_y,
+                        obs_v,
+                        obs_h]).astype(np.float32)
 
         return obs
 

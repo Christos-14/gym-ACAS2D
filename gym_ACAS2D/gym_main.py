@@ -16,7 +16,7 @@ def simulate():
         # AI tries up to MAX_TRY times
         for t in range(MAX_STEPS):
             # Quit if the game window closes
-            if environment.quit:
+            if environment.game.quit:
                 return -1
             # Fixed action selection for now
             # action = np.array([0])

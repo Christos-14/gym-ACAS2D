@@ -9,15 +9,21 @@ class ACAS2DEnv(gym.Env):
     # metadata = {'render.modes': ['human']}
 
     def __init__(self):
+
         # Initialise game
         self.game = ACAS2DGame()
-        # Keep track of whether the game window has been closed
-        self.quit = False
-        # Observation space: (x, y) position of the player, traffic aircraft and the goal.
-        # Positions go from x=0 to x=WIDTH and from y=0 to y=HEIGHT
-        pos_lo = np.zeros((N_TRAFFIC + 2) * 2, dtype=np.float32)
-        pos_hi = np.array([WIDTH, HEIGHT] * (N_TRAFFIC + 2), dtype=np.float32)
-        self.observation_space = spaces.Box(low=pos_lo, high=pos_hi, dtype=np.float32)
+
+        # Observation space: (x, y, v_air, psi) for player, goal and traffic aircraft.
+        lo = np.array([[0]*(MAX_TRAFFIC+2),                                 # min x
+                       [0]*(MAX_TRAFFIC+2),                                 # min y
+                       [AIRSPEED_FACTOR_MIN * AIRSPEED] * (MAX_TRAFFIC+2),  # min V_air
+                       [0]*(MAX_TRAFFIC+2)])                                # min psi
+        hi = np.array([[WIDTH]*(MAX_TRAFFIC+2),                             # max x
+                       [HEIGHT]*(MAX_TRAFFIC+2),                            # max y
+                       [AIRSPEED_FACTOR_MAX * AIRSPEED] * (MAX_TRAFFIC+2),  # max V_air
+                       [360]*(MAX_TRAFFIC+2)])                              # max psi
+        self.observation_space = spaces.Box(low=lo, high=hi, dtype=np.float32)
+
         # Action space: (lateral acceleration) combination set at time t
         action_lo = np.array([-ACC_LAT_LIMIT])
         action_hi = np.array([ACC_LAT_LIMIT])
@@ -46,7 +52,6 @@ class ACAS2DEnv(gym.Env):
 
     def render(self, mode='human'):
         self.game.view()
-        self.quit = self.game.quit
 
     def close(self):
         ...
