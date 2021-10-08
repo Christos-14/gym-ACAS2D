@@ -63,7 +63,7 @@ class ACAS2DGame:
             # Random v_air
             t_speed = random.uniform(AIRSPEED_FACTOR_MIN, AIRSPEED_FACTOR_MAX) * AIRSPEED
             # Random psi: 0..360 degrees
-            t_heading = random.randint(0, 360)
+            t_heading = random.uniform(0, 360)
             self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
 
     def minimum_separation(self):

@@ -47,4 +47,4 @@ class TrafficAircraft(Aircraft):
         # Update its psi to a random but opposite direction
         h1 = (self.psi + MIN_BOUNCE_ANGLE) % 360
         h2 = (self.psi + MAX_BOUNCE_ANGLE) % 360
-        self.psi = random.randint(min(h1, h2), max(h1, h2))
+        self.psi = random.uniform(min(h1, h2), max(h1, h2))
