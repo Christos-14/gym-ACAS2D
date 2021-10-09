@@ -1,8 +1,11 @@
+from gym_ACAS2D.settings import *
+
+from stable_baselines3.common.env_checker import check_env
+
 import math
 import gym
 import random
 import numpy as np
-from gym_ACAS2D.settings import *
 
 
 # Initialise random generator
@@ -14,6 +17,8 @@ def simulate(pause=False):
     for episode in range(1, EPISODES+1):
         # Initialise the  environment
         environment = gym.make("ACAS2D-v0")
+        # At the first episode, check the environment
+        check_env(environment)
         # Reset the environment
         state = environment.reset()
         # Set game episode

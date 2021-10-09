@@ -132,32 +132,33 @@ class ACAS2DGame:
         # Increase number of steps in the game (all steps start with an observation)
         self.steps += 1
 
-        # Observation: Array 4 x (MAX_TRAFFIC+2)
-        # Rows -> x, y, v_air, psi
-        # Cols -> player|goal|traffic|padding
+        # Observation: Dictionary of  4 vectors of shape (MAX_TRAFFIC+2, )
+        # Keys -> x, y, v_air, psi
+        # Values ordering -> [player|goal|traffic|padding]
+        obs = {}
 
         # Player and goal
         obs_x = [self.player.x, self.goal_x]
         obs_y = [self.player.y, self.goal_y]
-        obs_v = [self.player.v_air, 0]
-        obs_h = [self.player.psi, 0]
+        obs_v_air = [self.player.v_air, 0]
+        obs_psi = [self.player.psi, 0]
         # Traffic aircraft
         for t in self.traffic:
             obs_x.append(t.x)
             obs_y.append(t.y)
-            obs_v.append(t.v_air)
-            obs_h.append(t.psi)
+            obs_v_air.append(t.v_air)
+            obs_psi.append(t.psi)
         # Padding with zeros
         obs_x += ([0]*(MAX_TRAFFIC-self.num_traffic))
         obs_y += ([0]*(MAX_TRAFFIC-self.num_traffic))
-        obs_v += ([0]*(MAX_TRAFFIC-self.num_traffic))
-        obs_h += ([0]*(MAX_TRAFFIC-self.num_traffic))
+        obs_v_air += ([0]*(MAX_TRAFFIC-self.num_traffic))
+        obs_psi += ([0]*(MAX_TRAFFIC-self.num_traffic))
 
-        # Observation
-        obs = np.array([obs_x,
-                        obs_y,
-                        obs_v,
-                        obs_h]).astype(np.float32)
+        # Construct observation dict
+        obs["x"] = np.array(obs_x).astype(np.float32)
+        obs["y"] = np.array(obs_y).astype(np.float32)
+        obs["v_air"] = np.array(obs_v_air).astype(np.float32)
+        obs["psi"] = np.array(obs_psi).astype(np.float32)
 
         return obs
 

@@ -1,6 +1,6 @@
 import gym
 import numpy as np
-from gym import spaces
+from gym.spaces import Dict, Box
 from gym_ACAS2D.envs.game import ACAS2DGame
 from gym_ACAS2D.settings import *
 
@@ -14,20 +14,21 @@ class ACAS2DEnv(gym.Env):
         self.game = ACAS2DGame()
 
         # Observation space: (x, y, v_air, psi) for player, goal and traffic aircraft.
-        lo = np.array([[0]*(MAX_TRAFFIC+2),
-                       [0]*(MAX_TRAFFIC+2),
-                       [AIRSPEED_FACTOR_MIN * AIRSPEED] * (MAX_TRAFFIC+2),
-                       [0]*(MAX_TRAFFIC+2)])
-        hi = np.array([[WIDTH]*(MAX_TRAFFIC+2),
-                       [HEIGHT]*(MAX_TRAFFIC+2),
-                       [AIRSPEED_FACTOR_MAX * AIRSPEED] * (MAX_TRAFFIC+2),
-                       [360]*(MAX_TRAFFIC+2)])
-        self.observation_space = spaces.Box(low=lo, high=hi, dtype=np.float32)
+        obs_length = MAX_TRAFFIC + 2
+        self.observation_space = Dict({
+            "x": Box(low=0, high=WIDTH, shape=(obs_length,), dtype=np.float32),
+            "y": Box(low=0, high=HEIGHT, shape=(obs_length,), dtype=np.float32),
+            "v_air": Box(low=0,  # Goal speed is zero!
+                         high=AIRSPEED_FACTOR_MAX*AIRSPEED,
+                         shape=(obs_length,),
+                         dtype=np.float32),
+            "psi": Box(low=0, high=360, shape=(obs_length,), dtype=np.float32),
+        })
 
         # Action space: (lateral acceleration) combination set at time t
         action_lo = np.array([-ACC_LAT_LIMIT])
         action_hi = np.array([ACC_LAT_LIMIT])
-        self.action_space = spaces.Box(low=action_lo, high=action_hi, dtype=np.float32)
+        self.action_space = Box(low=action_lo, high=action_hi, dtype=np.float32)
 
     def step(self, action):
         # Game clock tick
