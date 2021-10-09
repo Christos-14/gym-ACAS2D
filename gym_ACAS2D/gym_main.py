@@ -35,6 +35,9 @@ def simulate():
                 print("Episode {:<3}: Time steps: {:<7} - Outcome: {:<10} - Total Reward = {}"
                       .format(episode, t, OUTCOME_NAMES[environment.game.outcome], total_reward))
                 break
+            # Pause the game screen to start video capture
+            if episode == 0 and t == 0:
+                input("Press any key to continue")
     return 0
 
 

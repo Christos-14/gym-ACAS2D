@@ -235,7 +235,7 @@ class ACAS2DGame:
 
         # Display minimum separation
         min_separation = self.minimum_separation()
-        ms = self.font.render("Min. Separation: {}".format(round(min_separation, 3)), True, FONT_RGB)
+        ms = self.font.render("Min. Separation: {}".format(round(min_separation, 1)), True, FONT_RGB)
         self.screen.blit(ms, (20, HEIGHT - 20))
 
         # Display 'time' (number of game loop iterations)
@@ -244,7 +244,7 @@ class ACAS2DGame:
 
         # Display distance to target
         dist_to_goal = self.distance_to_goal()
-        dg = self.font.render("Distance to goal: {}".format(round(dist_to_goal, 3)), True, FONT_RGB)
+        dg = self.font.render("Distance to goal: {}".format(round(dist_to_goal, 1)), True, FONT_RGB)
         self.screen.blit(dg, (WIDTH - 200, HEIGHT - 20))
 
         # Detect collisions
