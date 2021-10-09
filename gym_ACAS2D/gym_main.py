@@ -1,7 +1,12 @@
 import math
 import gym
+import random
 import numpy as np
 from gym_ACAS2D.settings import *
+
+
+# Initialise random generator
+random.seed(RANDOM_SEED)
 
 
 def simulate(pause=False):
