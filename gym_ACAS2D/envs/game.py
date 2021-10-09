@@ -8,7 +8,7 @@ from gym_ACAS2D.settings import *
 
 
 class ACAS2DGame:
-    def __init__(self, manual=False):
+    def __init__(self, episode=None, manual=False):
 
         # Initialize PyGame
         pygame.init()
@@ -20,6 +20,8 @@ class ACAS2DGame:
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         # Game clock
         self.clock = pygame.time.Clock()
+        # Episode
+        self.episode = episode
         # Time steps counter
         self.steps = 0
 
@@ -238,9 +240,11 @@ class ACAS2DGame:
         ms = self.font.render("Min. Separation: {}".format(round(min_separation, 1)), True, FONT_RGB)
         self.screen.blit(ms, (20, HEIGHT - 20))
 
-        # Display 'time' (number of game loop iterations)
+        # Display episode and 'time' (number of game loop iterations)
         st = self.font.render("Steps: {}".format(self.steps), True, FONT_RGB)
         self.screen.blit(st, (round(WIDTH / 2) - 50, HEIGHT - 20))
+        ep = self.font.render("Episode: {}".format(self.episode), True, FONT_RGB)
+        self.screen.blit(ep, (round(WIDTH / 2) - 50, HEIGHT - 40))
 
         # Display distance to target
         dist_to_goal = self.distance_to_goal()

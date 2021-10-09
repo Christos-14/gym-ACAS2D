@@ -4,14 +4,16 @@ import numpy as np
 from gym_ACAS2D.settings import *
 
 
-def simulate():
+def simulate(pause=False):
 
-    for episode in range(EPISODES):
-
+    for episode in range(1, EPISODES+1):
         # Initialise the  environment
         environment = gym.make("ACAS2D-v0")
+        # Reset the environment
         state = environment.reset()
-
+        # Set game episode
+        environment.game.episode = episode
+        # Episode reward
         total_reward = 0
         # AI tries up to MAX_TRY times
         for t in range(MAX_STEPS):
@@ -36,10 +38,11 @@ def simulate():
                       .format(episode, t, OUTCOME_NAMES[environment.game.outcome], total_reward))
                 break
             # Pause the game screen to start video capture
-            if episode == 0 and t == 0:
+            if pause and episode == 0 and t == 0:
                 input("Press any key to continue")
     return 0
 
 
 if __name__ == "__main__":
-    simulate()
+    simulate(pause=False)
+
