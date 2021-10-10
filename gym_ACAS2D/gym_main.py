@@ -18,7 +18,8 @@ def simulate(pause=False):
         # Initialise the  environment
         environment = gym.make("ACAS2D-v0")
         # At the first episode, check the environment
-        check_env(environment)
+        if episode == 1:
+            check_env(environment, warn=True, skip_render_check=True)
         # Reset the environment
         state = environment.reset()
         # Set game episode
