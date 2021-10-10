@@ -154,6 +154,12 @@ class ACAS2DGame:
         obs_v_air += ([0]*(MAX_TRAFFIC-self.num_traffic))
         obs_psi += ([0]*(MAX_TRAFFIC-self.num_traffic))
 
+        # Normalise observations: From range = 0..MAX to range = 0..1
+        obs_x = [x/WIDTH for x in obs_x]
+        obs_y = [y/HEIGHT for y in obs_y]
+        obs_v_air = [v_air/(AIRSPEED_FACTOR_MAX*AIRSPEED) for v_air in obs_v_air]
+        obs_psi = [psi/360 for psi in obs_psi]
+
         # Construct observation dict
         obs["x"] = np.array(obs_x).astype(np.float64)
         obs["y"] = np.array(obs_y).astype(np.float64)
