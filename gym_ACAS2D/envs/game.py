@@ -177,14 +177,16 @@ class ACAS2DGame:
 
     def evaluate(self):
         reward = 0
-        # Penalise time spent
-        reward += REWARD_STEP
+        # # Penalise time spent
+        # reward += REWARD_STEP
+        # Penalise distance to the goal
+        reward += REWARD_DIST_TO_GOAL_FACTOR * self.distance_to_goal()
         # # Reward min_separation maintained
         # reward += REWARD_MIN_SEPARATION_FACTOR * self.minimum_separation()
         # Penalise collisions.
         if self.detect_collisions():
             reward += REWARD_COLLISION
-        # Reward reaching the goal
+        # # Reward reaching the goal
         if self.check_goal():
             reward += REWARD_GOAL
         return reward

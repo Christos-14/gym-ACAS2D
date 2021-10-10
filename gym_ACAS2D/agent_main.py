@@ -4,6 +4,7 @@ from stable_baselines3.common.env_checker import check_env
 from stable_baselines3 import PPO
 
 import random
+import time
 import gym
 
 # Initialise random generator
@@ -13,16 +14,18 @@ random.seed(RANDOM_SEED)
 def simulate(pause=False):
     # Initialise the  environment
     environment = gym.make("ACAS2D-v0")
-    # Path to sa
-    model_file = r"C:\Users\chris\Code\gym-ACAS2D\gym_ACAS2D\models\ACAS2D_PPO_{}".format(TOTAL_TIME_STEPS)
+    # Path to save/load the trained model
+    model_file = r".\models\ACAS2D_PPO_{}".format(TOTAL_TIME_STEPS)
     # Create and train agent my environment
     try:
         model = PPO.load(model_file)
         print("Model loaded from file: {}".format(model_file))
     except FileNotFoundError:
+        t_start = time.time()
         model = PPO('MultiInputPolicy', environment, verbose=1)
         model.learn(total_timesteps=TOTAL_TIME_STEPS)
         model.save(model_file)
+        print(f"Model training complete in {(time.time() - t_start) / 60.0} minutes.")
 
     # Test
     for episode in range(1, EPISODES + 1):
