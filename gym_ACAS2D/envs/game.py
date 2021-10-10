@@ -164,7 +164,8 @@ class ACAS2DGame:
 
     def action(self, action):
         # Update player a_lat based on action taken
-        self.player.a_lat = action[0]
+        # Action is scaled to [-1, 1] ; scale to original [-ACC_LAT_LIMIT, ACC_LAT_LIMIT]
+        self.player.a_lat = action[0] * ACC_LAT_LIMIT
         # Update player position based on that v_air and psi
         self.player.update_state()
         # If the game is still running, update the traffic aircraft positions.

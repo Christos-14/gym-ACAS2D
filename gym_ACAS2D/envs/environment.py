@@ -25,10 +25,11 @@ class ACAS2DEnv(gym.Env):
             "psi": Box(low=0, high=360, shape=(obs_length,), dtype=np.float64),
         })
 
-        # Action space: (lateral acceleration) combination set at time t
-        action_lo = np.array([-ACC_LAT_LIMIT])
-        action_hi = np.array([ACC_LAT_LIMIT])
-        self.action_space = Box(low=action_lo, high=action_hi, dtype=np.float64)
+        # Action space: (lateral acceleration)
+        # This space will be a symmetric and normalized Box action space (range=[-1, 1])
+        # That is, actions will be scaled to [-1, 1] and
+        # the action() method will be re-scaling them to [-ACC_LAT_LIMIT, ACC_LAT_LIMIT].
+        self.action_space = Box(low=-1, high=1, shape=(1,), dtype=np.float64)
 
     def step(self, action):
         # Game clock tick

@@ -35,7 +35,7 @@ def simulate(pause=False):
             if episode % 2 == 0:
                 action = np.array([0])
             else:
-                action = np.array([-ACC_LAT_LIMIT * np.sin(2 * math.pi * (t / FPS))])
+                action = np.array([-np.sin(2 * math.pi * (t / FPS))])
             # Do action and get result
             next_state, reward, done, info = environment.step(action)
             total_reward += reward
