@@ -41,13 +41,13 @@ class ACAS2DGame:
         self.font = pygame.font.Font(FONT_NAME, FONT_SIZE)
 
         # Set the goal position at random, in the top part of the airspace.
-        self.goal_x = random.randint(AIRCRAFT_SIZE, WIDTH - AIRCRAFT_SIZE)
-        self.goal_y = random.randint(AIRCRAFT_SIZE, round(HEIGHT / 5))
+        self.goal_x = random.uniform(AIRCRAFT_SIZE, WIDTH - AIRCRAFT_SIZE)
+        self.goal_y = random.uniform(AIRCRAFT_SIZE, HEIGHT / 5)
 
         # Set the player starting position at random, in the bottom part of the airspace
         # Set the player starting psi and v_air
-        player_x = random.randint(0, WIDTH - AIRCRAFT_SIZE)
-        player_y = random.randint(round(4 * HEIGHT / 5), HEIGHT - AIRCRAFT_SIZE)
+        player_x = random.uniform(0, WIDTH - AIRCRAFT_SIZE)
+        player_y = random.uniform(4 * HEIGHT / 5, HEIGHT - AIRCRAFT_SIZE)
         player_speed = AIRSPEED
         self.player = PlayerAircraft(x=player_x, y=player_y, v_air=player_speed, psi=0)
         # Set the initial heading towards the goal; Assumption is that a path has been provided to the agent.
@@ -60,8 +60,8 @@ class ACAS2DGame:
         self.traffic = []
         for t in range(self.num_traffic):
             # Random position in the mid part of the airspace
-            t_x = random.randint(0, WIDTH - AIRCRAFT_SIZE)
-            t_y = random.randint(0, round(3 * HEIGHT / 5))
+            t_x = random.uniform(0, WIDTH - AIRCRAFT_SIZE)
+            t_y = random.uniform(0, 3 * HEIGHT / 5)
             # Random v_air
             t_speed = random.uniform(AIRSPEED_FACTOR_MIN, AIRSPEED_FACTOR_MAX) * AIRSPEED
             # Random psi: 0..360 degrees
@@ -155,10 +155,10 @@ class ACAS2DGame:
         obs_psi += ([0]*(MAX_TRAFFIC-self.num_traffic))
 
         # Construct observation dict
-        obs["x"] = np.array(obs_x).astype(np.float32)
-        obs["y"] = np.array(obs_y).astype(np.float32)
-        obs["v_air"] = np.array(obs_v_air).astype(np.float32)
-        obs["psi"] = np.array(obs_psi).astype(np.float32)
+        obs["x"] = np.array(obs_x).astype(np.float64)
+        obs["y"] = np.array(obs_y).astype(np.float64)
+        obs["v_air"] = np.array(obs_v_air).astype(np.float64)
+        obs["psi"] = np.array(obs_psi).astype(np.float64)
 
         return obs
 
@@ -243,9 +243,9 @@ class ACAS2DGame:
 
         # Display episode and 'time' (number of game loop iterations)
         st = self.font.render("Steps: {}".format(self.steps), True, FONT_RGB)
-        self.screen.blit(st, (round(WIDTH / 2) - 50, HEIGHT - 20))
+        self.screen.blit(st, (WIDTH / 2 - 50, HEIGHT - 20))
         ep = self.font.render("Episode: {}".format(self.episode), True, FONT_RGB)
-        self.screen.blit(ep, (round(WIDTH / 2) - 50, HEIGHT - 40))
+        self.screen.blit(ep, (WIDTH / 2 - 50, HEIGHT - 40))
 
         # Display distance to target
         dist_to_goal = self.distance_to_goal()
@@ -255,12 +255,12 @@ class ACAS2DGame:
         # Detect collisions
         if self.detect_collisions():
             mes = self.font.render("Collision!", True, FONT_RGB)
-            self.screen.blit(mes, (round(WIDTH / 2) - 30, round(HEIGHT / 2)))
+            self.screen.blit(mes, (WIDTH / 2 - 30, HEIGHT / 2))
 
         # Check if player reached the goal
         if self.check_goal():
             mes = self.font.render("Goal reached!", True, FONT_RGB)
-            self.screen.blit(mes, (round(WIDTH / 2) - 40, round(HEIGHT / 2)))
+            self.screen.blit(mes, (WIDTH / 2 - 40, HEIGHT / 2))
 
         # Update the game screen
         pygame.display.update()

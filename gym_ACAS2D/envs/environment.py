@@ -16,19 +16,19 @@ class ACAS2DEnv(gym.Env):
         # Observation space: (x, y, v_air, psi) for player, goal and traffic aircraft.
         obs_length = MAX_TRAFFIC + 2
         self.observation_space = Dict({
-            "x": Box(low=0, high=WIDTH, shape=(obs_length,), dtype=np.float32),
-            "y": Box(low=0, high=HEIGHT, shape=(obs_length,), dtype=np.float32),
+            "x": Box(low=0, high=WIDTH, shape=(obs_length,), dtype=np.float64),
+            "y": Box(low=0, high=HEIGHT, shape=(obs_length,), dtype=np.float64),
             "v_air": Box(low=0,  # Goal speed is zero!
                          high=AIRSPEED_FACTOR_MAX*AIRSPEED,
                          shape=(obs_length,),
-                         dtype=np.float32),
-            "psi": Box(low=0, high=360, shape=(obs_length,), dtype=np.float32),
+                         dtype=np.float64),
+            "psi": Box(low=0, high=360, shape=(obs_length,), dtype=np.float64),
         })
 
         # Action space: (lateral acceleration) combination set at time t
         action_lo = np.array([-ACC_LAT_LIMIT])
         action_hi = np.array([ACC_LAT_LIMIT])
-        self.action_space = Box(low=action_lo, high=action_hi, dtype=np.float32)
+        self.action_space = Box(low=action_lo, high=action_hi, dtype=np.float64)
 
     def step(self, action):
         # Game clock tick
