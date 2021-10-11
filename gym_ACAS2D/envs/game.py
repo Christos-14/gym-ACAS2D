@@ -102,13 +102,13 @@ class ACAS2DGame:
                 break
         return collision
 
-    def check_out_of_bounds(self):
-        # Player and goal positions as np.array
-        out_of_bounds = (self.player.x < 0) \
-                        or (self.player.x > WIDTH) \
-                        or (self.player.y < 0) \
-                        or (self.player.y > HEIGHT)
-        return out_of_bounds
+    # def check_out_of_bounds(self):
+    #     # Player and goal positions as np.array
+    #     out_of_bounds = (self.player.x < 0) \
+    #                     or (self.player.x > WIDTH) \
+    #                     or (self.player.y < 0) \
+    #                     or (self.player.y > HEIGHT)
+    #     return out_of_bounds
 
     def check_goal(self):
         # Player and goal positions as np.array
