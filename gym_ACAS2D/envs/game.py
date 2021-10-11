@@ -49,9 +49,8 @@ class ACAS2DGame:
         player_x = random.uniform(0, WIDTH - AIRCRAFT_SIZE)
         player_y = random.uniform(4 * HEIGHT / 5, HEIGHT - AIRCRAFT_SIZE)
         player_speed = AIRSPEED
-        self.player = PlayerAircraft(x=player_x, y=player_y, v_air=player_speed, psi=0)
-        # Set the initial heading towards the goal; Assumption is that a path has been provided to the agent.
-        self.player.psi = self.heading_to_goal()
+        player_psi = random.uniform(0, 360)
+        self.player = PlayerAircraft(x=player_x, y=player_y, v_air=player_speed, psi=player_psi)
 
         # Number of traffic aircraft
         self.num_traffic = random.randint(MIN_TRAFFIC, MAX_TRAFFIC)
@@ -69,6 +68,8 @@ class ACAS2DGame:
             self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
 
     def minimum_separation(self):
+        if self.num_traffic == 0:
+            return float("inf")
         distances = []
         for t_air in self.traffic:
             # Player and traffic aircraft positions as np.array
@@ -183,16 +184,16 @@ class ACAS2DGame:
 
     def evaluate(self):
         reward = 0
-        # # Penalise time spent
+        # # # Penalise time spent
         # reward += REWARD_STEP
         # Penalise distance to the goal
         reward += REWARD_DIST_TO_GOAL_FACTOR * self.distance_to_goal()
         # # Reward min_separation maintained
         # reward += REWARD_MIN_SEPARATION_FACTOR * self.minimum_separation()
         # Penalise collisions.
-        if self.detect_collisions():
-            reward += REWARD_COLLISION
-        # # Reward reaching the goal
+        # if self.detect_collisions():
+        #     reward += REWARD_COLLISION
+        # Reward reaching the goal
         if self.check_goal():
             reward += REWARD_GOAL
         return reward
