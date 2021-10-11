@@ -15,7 +15,7 @@ def simulate(pause=False):
     # Initialise the  environment
     environment = gym.make("ACAS2D-v0")
     # Path to save/load the trained model
-    model_file = r".\models\ACAS2D_PPO_{}".format(TOTAL_TIME_STEPS)
+    model_file = r".\models\ACAS2D_PPO_{}".format(int(TOTAL_TIME_STEPS))
     # Create and train agent my environment
     try:
         model = PPO.load(model_file)
