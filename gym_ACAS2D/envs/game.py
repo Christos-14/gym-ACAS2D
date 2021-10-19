@@ -144,38 +144,34 @@ class ACAS2DGame:
         # Values ordering -> [player|goal|traffic|padding]
         obs = {}
 
-        # Player and goal
-        obs_x = [self.player.x, self.goal_x]
-        obs_y = [self.player.y, self.goal_y]
-        obs_v_air = [self.player.v_air, 0]
-        obs_psi = [self.player.psi, 0]
-        # Traffic aircraft
-        for t in self.traffic:
-            obs_x.append(t.x)
-            obs_y.append(t.y)
-            obs_v_air.append(t.v_air)
-            obs_psi.append(t.psi)
-        # Padding with zeros
-        obs_x += ([0] * (MAX_TRAFFIC - self.num_traffic))
-        obs_y += ([0] * (MAX_TRAFFIC - self.num_traffic))
-        obs_v_air += ([0] * (MAX_TRAFFIC - self.num_traffic))
-        obs_psi += ([0] * (MAX_TRAFFIC - self.num_traffic))
+        # Current time step, normalised (from 0..MAX_STEPS to 0..1)
+        obs_time = [self.steps/MAX_STEPS]
 
-        # Normalise observations: From range = 0..MAX to range = 0..1
-        obs_x = [x / WIDTH for x in obs_x]
-        obs_y = [y / HEIGHT for y in obs_y]
-        obs_v_air = [v_air / (AIRSPEED_FACTOR_MAX * AIRSPEED) for v_air in obs_v_air]
-        obs_psi = [psi / 360 for psi in obs_psi]
+        # Goal position, normalised
+        obs_goal = [self.goal_x/WIDTH, self.goal_y/HEIGHT]
+
+        # Player position, airspeed and heading, normalised
+        obs_player = [self.player.x/WIDTH, self.player.y/HEIGHT,
+                      self.player.v_air/(AIRSPEED_FACTOR_MAX * AIRSPEED),
+                      self.player.psi/360]
+
+        # Traffic positions, airspeeds and headings, normalised
+        obs_traffic = []
+        for t in self.traffic:
+            obs_traffic.append(t.x/WIDTH)
+            obs_traffic.append(t.y/HEIGHT)
+            obs_traffic.append(t.v_air/(AIRSPEED_FACTOR_MAX * AIRSPEED))
+            obs_traffic.append(t.psi/360)
+        # Padding with zeros
+        obs_traffic += [0] * (4 * (MAX_TRAFFIC - self.num_traffic))
 
         # Construct observation dict
-        obs["x"] = np.array(obs_x).astype(np.float64)
-        obs["y"] = np.array(obs_y).astype(np.float64)
-        obs["v_air"] = np.array(obs_v_air).astype(np.float64)
-        obs["psi"] = np.array(obs_psi).astype(np.float64)
+        obs["time"] = np.array(obs_time).astype(np.float64)
+        obs["goal"] = np.array(obs_goal).astype(np.float64)
+        obs["player"] = np.array(obs_player).astype(np.float64)
+        obs["traffic"] = np.array(obs_traffic).astype(np.float64)
 
-        # print("observe() 	>>> D_GOAL: {:<8} MIN_SEPARATION: {}".
-        #       format(round(self.distance_to_goal(), 2), round(self.minimum_separation(), 2)))
-
+        # print("observe() 	>>> obs: {}".format(obs))
         return obs
 
     def action(self, action):
@@ -214,7 +210,7 @@ class ACAS2DGame:
             reward += REWARD_GOAL
         # Accumulate episode rewards
         self.total_reward += reward
-        print("evaluate() 	>>> Reward: {}".format(reward))
+        # print("evaluate() 	>>> Reward: {}".format(reward))
         return reward
 
     def is_done(self):

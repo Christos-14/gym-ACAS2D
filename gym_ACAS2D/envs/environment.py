@@ -12,15 +12,14 @@ class ACAS2DEnv(gym.Env):
         # Initialise game
         self.game = ACAS2DGame()
 
-        # Observation space: (x, y, v_air, psi) for player, goal and traffic aircraft.
+        # Observation space: (x, y, v_air, psi) for player, goal and traffic aircraft AND current time-step t
         # This space will be a Dict (keys = observation dimension)
         # Each key will be a normalised Box (range=[0, 1])
-        obs_length = MAX_TRAFFIC + 2
         self.observation_space = Dict({
-            "x": Box(low=0, high=1, shape=(obs_length,), dtype=np.float64),
-            "y": Box(low=0, high=1, shape=(obs_length,), dtype=np.float64),
-            "v_air": Box(low=0, high=1, shape=(obs_length,), dtype=np.float64),
-            "psi": Box(low=0, high=1, shape=(obs_length,), dtype=np.float64),
+            "time": Box(low=0, high=1, shape=(1,), dtype=np.float64),
+            "goal": Box(low=0, high=1, shape=(2,), dtype=np.float64),
+            "player": Box(low=0, high=1, shape=(4,), dtype=np.float64),
+            "traffic": Box(low=0, high=1, shape=(4*MAX_TRAFFIC,), dtype=np.float64)
         })
 
         # Action space: (lateral acceleration)
