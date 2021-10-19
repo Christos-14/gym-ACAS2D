@@ -16,7 +16,7 @@ def simulate(pause=False):
     # Initialise the  environment
     environment = gym.make("ACAS2D-v0")
     # Path to save/load the trained model
-    model_file = r".\models\ACAS2D_PPO_{}".format(int(TOTAL_TIME_STEPS))
+    model_file = r".\models\ACAS2D_PPO_{}".format(int(TOTAL_STEPS))
     # Create and train agent my environment
     try:
         model = PPO.load(model_file)
@@ -24,7 +24,7 @@ def simulate(pause=False):
     except FileNotFoundError:
         t_start = time.time()
         model = PPO('MultiInputPolicy', environment, verbose=1)
-        model.learn(total_timesteps=TOTAL_TIME_STEPS)
+        model.learn(total_timesteps=TOTAL_STEPS)
         model.save(model_file)
         print(f"Model training complete in {(time.time() - t_start) / 60.0} minutes.")
 

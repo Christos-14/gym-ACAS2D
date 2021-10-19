@@ -35,9 +35,6 @@ class ACAS2DGame:
         # Game outcome
         self.outcome = None
 
-        # Print messages at environment function calls
-        self.verbose = verbose
-
         # Load images
         self.playerIMG = pygame.image.load(PLAYER_IMG)
         self.goalIMG = pygame.image.load(GOAL_IMG)
@@ -173,15 +170,12 @@ class ACAS2DGame:
         obs["v_air"] = np.array(obs_v_air).astype(np.float64)
         obs["psi"] = np.array(obs_psi).astype(np.float64)
 
-        if self.verbose:
-            print("observe() 	>>> D_GOAL: {:<8} MIN_SEPARATION: {}".
-                  format(round(self.distance_to_goal(), 2), round(self.minimum_separation(), 2)))
+        # print("observe() 	>>> D_GOAL: {:<8} MIN_SEPARATION: {}".
+        #       format(round(self.distance_to_goal(), 2), round(self.minimum_separation(), 2)))
 
         return obs
 
     def action(self, action):
-        if self.verbose:
-            print("action() 	>>> Action: {}".format(action))
         # Update player a_lat based on action taken
         # Action is scaled to [-1, 1] ; scale to original [-ACC_LAT_LIMIT, ACC_LAT_LIMIT]
         self.player.a_lat = action[0] * ACC_LAT_LIMIT
@@ -193,6 +187,7 @@ class ACAS2DGame:
                 t.update_state()
                 if t.out_of_bounds(WIDTH, HEIGHT):
                     t.bounce(WIDTH, HEIGHT)
+        # print("action() 	>>> Action: {}".format(action))
 
     def evaluate(self):
         reward = 0
@@ -216,35 +211,34 @@ class ACAS2DGame:
             reward += REWARD_GOAL
         # Accumulate episode rewards
         self.total_reward += reward
-        if self.verbose:
-            print("evaluate() 	>>> Reward: {}".format(reward))
+        # print("evaluate() 	>>> Reward: {}".format(reward))
         return reward
 
     def is_done(self):
-        outcome = False
+        done = False
         # Check for Too Far
         if self.check_too_far():
             self.running = False
             self.outcome = 4
-            outcome = True
+            done = True
         # Check for Timeout
         elif self.check_timeout():
             self.running = False
             self.outcome = 3
-            outcome = True
+            done = True
         # Check for collisions
         elif self.detect_collisions():
             self.running = False
             self.outcome = 2
-            outcome = True
+            done = True
         # Check if we have reached the goal
         elif self.check_goal():
             self.running = False
             self.outcome = 1
-            outcome = True
-        if self.verbose:
+            done = True
+        if done:
             print("is_done() 	>>> Outcome: {}".format(self.outcome))
-        return outcome
+        return done
 
     def view(self):
         # Detect events
@@ -272,6 +266,11 @@ class ACAS2DGame:
         # Draw collision circle around aircraft
         pygame.draw.circle(self.screen, GREEN_RGB, (self.player.x, self.player.y),
                            COLLISION_RADIUS, 1)
+
+        # Draw goal radius around goal
+        pygame.draw.circle(self.screen, RED_RGB, (self.goal_x, self.goal_y),
+                           GOAL_RADIUS, 1)
+
         # for t in self.traffic:
         #     pygame.draw.circle(self.screen, RED_RGB, (t.x, t.y), COLLISION_RADIUS, 1)
 
