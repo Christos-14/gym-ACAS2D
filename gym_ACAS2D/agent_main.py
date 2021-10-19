@@ -6,6 +6,7 @@ from stable_baselines3 import PPO
 import random
 import time
 import gym
+import sys
 
 # Initialise random generator
 random.seed(RANDOM_SEED)
@@ -63,4 +64,15 @@ def simulate(pause=False):
 
 
 if __name__ == "__main__":
-    simulate(pause=False)
+    log_to_file = False
+    if log_to_file:
+        orig_stdout = sys.stdout
+        f = open('agent_log.txt', 'w')
+        sys.stdout = f
+    try:
+        simulate(pause=False)
+    except KeyboardInterrupt:
+        pass
+    if log_to_file:
+        sys.stdout = orig_stdout
+        f.close()

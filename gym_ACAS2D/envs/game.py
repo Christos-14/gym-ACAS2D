@@ -24,6 +24,8 @@ class ACAS2DGame:
         self.episode = episode
         # Time steps counter
         self.steps = 0
+        # Total reward
+        self.total_reward = 0
 
         # Game status flags
         self.manual = manual  # Is the player controlled manually?
@@ -51,6 +53,9 @@ class ACAS2DGame:
         player_speed = AIRSPEED
         player_psi = random.uniform(0, 360)
         self.player = PlayerAircraft(x=player_x, y=player_y, v_air=player_speed, psi=player_psi)
+
+        # Set player's initial heading towards the general direction of the goal.
+        self.player.psi = self.heading_to_goal() + random.uniform(-INITIAL_HEADING_LIM, INITIAL_HEADING_LIM)
 
         # Number of traffic aircraft
         self.num_traffic = random.randint(MIN_TRAFFIC, MAX_TRAFFIC)
@@ -102,14 +107,6 @@ class ACAS2DGame:
                 break
         return collision
 
-    # def check_out_of_bounds(self):
-    #     # Player and goal positions as np.array
-    #     out_of_bounds = (self.player.x < 0) \
-    #                     or (self.player.x > WIDTH) \
-    #                     or (self.player.y < 0) \
-    #                     or (self.player.y > HEIGHT)
-    #     return out_of_bounds
-
     def check_goal(self):
         # Player and goal positions as np.array
         pl = np.array((self.player.x, self.player.y))
@@ -125,8 +122,8 @@ class ACAS2DGame:
         dx = self.goal_x - self.player.x
         dy = self.goal_y - self.player.y
         rads = math.atan2(dy, dx) % (2*math.pi)
-        degs = math.degrees(rads)
-        return degs
+        degrees = math.degrees(rads)
+        return degrees
 
     def observe(self):
 
@@ -184,18 +181,23 @@ class ACAS2DGame:
 
     def evaluate(self):
         reward = 0
-        # # # Penalise time spent
-        # reward += REWARD_STEP
+        # Penalise time spent
+        reward += REWARD_STEP
         # Penalise distance to the goal
-        reward += REWARD_DIST_TO_GOAL_FACTOR * self.distance_to_goal()
-        # # Reward min_separation maintained
+        # reward += REWARD_DIST_GOAL_FACTOR * self.distance_to_goal()
+        # Reward min_separation maintained
         # reward += REWARD_MIN_SEPARATION_FACTOR * self.minimum_separation()
         # Penalise collisions.
-        # if self.detect_collisions():
-        #     reward += REWARD_COLLISION
+        if self.detect_collisions():
+            reward += REWARD_COLLISION
+        # # Penalise timeouts.
+        # if self.steps == MAX_STEPS:
+        #     reward += REWARD_TIMEOUT
         # Reward reaching the goal
         if self.check_goal():
             reward += REWARD_GOAL
+        # Accumulate episode rewards
+        self.total_reward += reward
         return reward
 
     def is_done(self):
