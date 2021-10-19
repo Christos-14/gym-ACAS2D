@@ -3,7 +3,6 @@ from gym_ACAS2D.settings import *
 from stable_baselines3.common.env_checker import check_env
 
 import numpy as np
-import math
 import gym
 import random
 
@@ -24,21 +23,16 @@ def simulate(pause=False):
         state = environment.reset()
         # Set game episode
         environment.game.episode = episode
-        # Episode reward
-        total_reward = 0
         # AI tries up to MAX_TRY times
         for t in range(MAX_STEPS):
             # Quit if the game window closes
             if environment.game.quit:
                 return -1
-            # Fixed action selection for now
-            # if episode % 2 == 0:
-            #     action = np.array([0])
-            # else:
-            action = np.array([1])  # np.array([-np.sin(2 * math.pi * (t / FPS))])
+            # Fixed action selection for now: Alternate between 0, 1 and -1.
+            action = np.array([(episode % 3)-1])
             # Do action and get result
             next_state, reward, done, info = environment.step(action)
-            total_reward += reward
+            # total_reward += reward
             # Set up for the next iteration
             state = next_state
             # Draw games
@@ -46,7 +40,7 @@ def simulate(pause=False):
             # When episode is done, print reward
             if done:
                 print("Episode {:<3}: Time steps: {:<7} - Outcome: {:<10} - Total Reward = {}"
-                      .format(episode, t, OUTCOME_NAMES[environment.game.outcome], total_reward))
+                      .format(episode, t, OUTCOME_NAMES[environment.game.outcome], environment.game.total_reward))
                 break
             # Pause the game screen to start video capture
             if pause and episode == 0 and t == 0:
@@ -56,4 +50,3 @@ def simulate(pause=False):
 
 if __name__ == "__main__":
     simulate(pause=False)
-

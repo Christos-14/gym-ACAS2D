@@ -8,7 +8,7 @@ from gym_ACAS2D.settings import *
 
 
 class ACAS2DGame:
-    def __init__(self, episode=None, manual=False):
+    def __init__(self, episode=None, manual=False, verbose=False):
 
         # Initialize PyGame
         pygame.init()
@@ -29,11 +29,14 @@ class ACAS2DGame:
 
         # Game status flags
         self.manual = manual  # Is the player controlled manually?
-        self.running = True    # Is the game running?
+        self.running = True  # Is the game running?
         self.quit = False  # Has the game window been closed?
 
         # Game outcome
         self.outcome = None
+
+        # Print messages at environment function calls
+        self.verbose = verbose
 
         # Load images
         self.playerIMG = pygame.image.load(PLAYER_IMG)
@@ -93,6 +96,12 @@ class ACAS2DGame:
         d = np.linalg.norm(pl - gl, 2)
         return d
 
+    def check_timeout(self):
+        return self.steps == MAX_STEPS
+
+    def check_too_far(self):
+        return self.distance_to_goal() > np.sqrt(WIDTH**2 + HEIGHT**2)
+
     def detect_collisions(self):
         collision = False
         for t_air in self.traffic:
@@ -112,7 +121,7 @@ class ACAS2DGame:
         pl = np.array((self.player.x, self.player.y))
         gl = np.array((self.goal_x, self.goal_y))
         # Euclidean distance between player and goal
-        d = np.linalg.norm(pl-gl, 2)
+        d = np.linalg.norm(pl - gl, 2)
         # If the distance is less than the collision radius, player reached the goal
         goal = d < GOAL_RADIUS
         return goal
@@ -121,7 +130,7 @@ class ACAS2DGame:
         # The psi that would lead the player straight to the goal
         dx = self.goal_x - self.player.x
         dy = self.goal_y - self.player.y
-        rads = math.atan2(dy, dx) % (2*math.pi)
+        rads = math.atan2(dy, dx) % (2 * math.pi)
         degrees = math.degrees(rads)
         return degrees
 
@@ -147,16 +156,16 @@ class ACAS2DGame:
             obs_v_air.append(t.v_air)
             obs_psi.append(t.psi)
         # Padding with zeros
-        obs_x += ([0]*(MAX_TRAFFIC-self.num_traffic))
-        obs_y += ([0]*(MAX_TRAFFIC-self.num_traffic))
-        obs_v_air += ([0]*(MAX_TRAFFIC-self.num_traffic))
-        obs_psi += ([0]*(MAX_TRAFFIC-self.num_traffic))
+        obs_x += ([0] * (MAX_TRAFFIC - self.num_traffic))
+        obs_y += ([0] * (MAX_TRAFFIC - self.num_traffic))
+        obs_v_air += ([0] * (MAX_TRAFFIC - self.num_traffic))
+        obs_psi += ([0] * (MAX_TRAFFIC - self.num_traffic))
 
         # Normalise observations: From range = 0..MAX to range = 0..1
-        obs_x = [x/WIDTH for x in obs_x]
-        obs_y = [y/HEIGHT for y in obs_y]
-        obs_v_air = [v_air/(AIRSPEED_FACTOR_MAX*AIRSPEED) for v_air in obs_v_air]
-        obs_psi = [psi/360 for psi in obs_psi]
+        obs_x = [x / WIDTH for x in obs_x]
+        obs_y = [y / HEIGHT for y in obs_y]
+        obs_v_air = [v_air / (AIRSPEED_FACTOR_MAX * AIRSPEED) for v_air in obs_v_air]
+        obs_psi = [psi / 360 for psi in obs_psi]
 
         # Construct observation dict
         obs["x"] = np.array(obs_x).astype(np.float64)
@@ -164,9 +173,15 @@ class ACAS2DGame:
         obs["v_air"] = np.array(obs_v_air).astype(np.float64)
         obs["psi"] = np.array(obs_psi).astype(np.float64)
 
+        if self.verbose:
+            print("observe() 	>>> D_GOAL: {:<8} MIN_SEPARATION: {}".
+                  format(round(self.distance_to_goal(), 2), round(self.minimum_separation(), 2)))
+
         return obs
 
     def action(self, action):
+        if self.verbose:
+            print("action() 	>>> Action: {}".format(action))
         # Update player a_lat based on action taken
         # Action is scaled to [-1, 1] ; scale to original [-ACC_LAT_LIMIT, ACC_LAT_LIMIT]
         self.player.a_lat = action[0] * ACC_LAT_LIMIT
@@ -182,42 +197,54 @@ class ACAS2DGame:
     def evaluate(self):
         reward = 0
         # Penalise time spent
-        reward += REWARD_STEP
+        # reward += REWARD_STEP
         # Penalise distance to the goal
         # reward += REWARD_DIST_GOAL_FACTOR * self.distance_to_goal()
         # Reward min_separation maintained
         # reward += REWARD_MIN_SEPARATION_FACTOR * self.minimum_separation()
+        # Penalise going too far.
+        if self.check_too_far():
+            reward += REWARD_TOO_FAR
+        # Penalise timeouts.
+        if self.check_timeout():
+            reward += REWARD_TIMEOUT
         # Penalise collisions.
         if self.detect_collisions():
             reward += REWARD_COLLISION
-        # # Penalise timeouts.
-        # if self.steps == MAX_STEPS:
-        #     reward += REWARD_TIMEOUT
         # Reward reaching the goal
         if self.check_goal():
             reward += REWARD_GOAL
         # Accumulate episode rewards
         self.total_reward += reward
+        if self.verbose:
+            print("evaluate() 	>>> Reward: {}".format(reward))
         return reward
 
     def is_done(self):
-        # Check for Timeout: if max number of steps has been reached
-        if self.steps == MAX_STEPS:
+        outcome = False
+        # Check for Too Far
+        if self.check_too_far():
+            self.running = False
+            self.outcome = 4
+            outcome = True
+        # Check for Timeout
+        elif self.check_timeout():
             self.running = False
             self.outcome = 3
-            return True
+            outcome = True
         # Check for collisions
-        if self.detect_collisions():
+        elif self.detect_collisions():
             self.running = False
             self.outcome = 2
-            return True
+            outcome = True
         # Check if we have reached the goal
-        if self.check_goal():
+        elif self.check_goal():
             self.running = False
             self.outcome = 1
-            return True
-        # Otherwise, the game is on
-        return False
+            outcome = True
+        if self.verbose:
+            print("is_done() 	>>> Outcome: {}".format(self.outcome))
+        return outcome
 
     def view(self):
         # Detect events

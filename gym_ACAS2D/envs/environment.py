@@ -6,7 +6,6 @@ from gym_ACAS2D.settings import *
 
 
 class ACAS2DEnv(gym.Env):
-    # metadata = {'render.modes': ['human']}
 
     def __init__(self):
 
@@ -41,8 +40,11 @@ class ACAS2DEnv(gym.Env):
         reward = self.game.evaluate()
         # Check for termination
         done = self.game.is_done()
-        # TODO: Add debugging info from the ACAS2DGame class
-        info = {}
+        # Debugging info from the ACAS2DGame class
+        info = {"ACTION": action,
+                "D_GOAL": self.game.distance_to_goal(),
+                "MIN_SEPARATION": self.game.minimum_separation(),
+                "R_TOTAL": self.game.total_reward}
         return obs, reward, done, info
 
     def reset(self):
