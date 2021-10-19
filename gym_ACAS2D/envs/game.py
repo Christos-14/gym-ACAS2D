@@ -46,6 +46,9 @@ class ACAS2DGame:
         self.goal_x = random.uniform(AIRCRAFT_SIZE, WIDTH - AIRCRAFT_SIZE)
         self.goal_y = random.uniform(AIRCRAFT_SIZE, HEIGHT / 5)
 
+        # Maximum allowed distance from goal
+        self.max_distance = np.sqrt(WIDTH**2 + HEIGHT**2)
+
         # Set the player starting position at random, in the bottom part of the airspace
         # Set the player starting psi and v_air
         player_x = random.uniform(0, WIDTH - AIRCRAFT_SIZE)
@@ -97,7 +100,7 @@ class ACAS2DGame:
         return self.steps == MAX_STEPS
 
     def check_too_far(self):
-        return self.distance_to_goal() > np.sqrt(WIDTH**2 + HEIGHT**2)
+        return self.distance_to_goal() > self.max_distance
 
     def detect_collisions(self):
         collision = False
@@ -191,13 +194,13 @@ class ACAS2DGame:
 
     def evaluate(self):
         reward = 0
-        # Penalise time spent
-        # reward += REWARD_STEP
-        # Penalise distance to the goal
-        # reward += REWARD_DIST_GOAL_FACTOR * self.distance_to_goal()
-        # Reward min_separation maintained
-        # reward += REWARD_MIN_SEPARATION_FACTOR * self.minimum_separation()
-        # Penalise going too far.
+        # Time discount factor
+        tdf = 1 - (self.steps / MAX_STEPS)
+        # Time discounted distance reward
+        d = self.distance_to_goal()
+        d_max = self.max_distance
+        r_dist = 1 - (d / d_max) ** 0.4
+        reward += r_dist * tdf
         if self.check_too_far():
             reward += REWARD_TOO_FAR
         # Penalise timeouts.
@@ -211,7 +214,7 @@ class ACAS2DGame:
             reward += REWARD_GOAL
         # Accumulate episode rewards
         self.total_reward += reward
-        # print("evaluate() 	>>> Reward: {}".format(reward))
+        print("evaluate() 	>>> Reward: {}".format(reward))
         return reward
 
     def is_done(self):
