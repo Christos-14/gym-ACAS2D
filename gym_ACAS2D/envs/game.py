@@ -184,8 +184,8 @@ class ACAS2DGame:
         for t in self.traffic:
             if self.running:
                 t.update_state()
-                if t.out_of_bounds(WIDTH, HEIGHT):
-                    t.bounce(WIDTH, HEIGHT)
+                # if t.out_of_bounds(WIDTH, HEIGHT):
+                #     t.bounce(WIDTH, HEIGHT)
         # print("action() 	>>> Action: {}".format(action))
 
     def evaluate(self):
