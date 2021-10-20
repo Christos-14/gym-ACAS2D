@@ -7,8 +7,26 @@ from gym_ACAS2D.envs.aircraft import PlayerAircraft, TrafficAircraft
 from gym_ACAS2D.settings import *
 
 
+def distance(x1, y1, x2, y2):
+    # Player and goal positions as np.array
+    p1 = np.array((x1, y1))
+    p2 = np.array((x2, y2))
+    # Euclidean distance between player and goal
+    d = np.linalg.norm(p1 - p2, 2)
+    return d
+
+
+def relative_angle(x1, x2, y1, y2):
+    # The psi that would lead the player straight to the goal
+    dx = x2 - x1
+    dy = y2 - y1
+    rads = math.atan2(dy, dx) % (2 * math.pi)
+    degrees = math.degrees(rads)
+    return degrees
+
+
 class ACAS2DGame:
-    def __init__(self, episode=None, manual=False, verbose=False):
+    def __init__(self, episode=None, manual=False):
 
         # Initialize PyGame
         pygame.init()
@@ -43,22 +61,21 @@ class ACAS2DGame:
         self.font = pygame.font.Font(FONT_NAME, FONT_SIZE)
 
         # Set the goal position at random, in the top part of the airspace.
-        self.goal_x = random.uniform(AIRCRAFT_SIZE, WIDTH - AIRCRAFT_SIZE)
-        self.goal_y = random.uniform(AIRCRAFT_SIZE, HEIGHT / 5)
+        self.goal_x = WIDTH - AIRCRAFT_SIZE
+        self.goal_y = AIRCRAFT_SIZE
 
         # Maximum allowed distance from goal
-        self.max_distance = np.sqrt(WIDTH**2 + HEIGHT**2)
+        self.max_distance = np.sqrt(WIDTH ** 2 + HEIGHT ** 2)
 
         # Set the player starting position at random, in the bottom part of the airspace
         # Set the player starting psi and v_air
-        player_x = random.uniform(0, WIDTH - AIRCRAFT_SIZE)
-        player_y = random.uniform(4 * HEIGHT / 5, HEIGHT - AIRCRAFT_SIZE)
+        player_x = AIRCRAFT_SIZE
+        player_y = HEIGHT - AIRCRAFT_SIZE
         player_speed = AIRSPEED
         player_psi = random.uniform(0, 360)
         self.player = PlayerAircraft(x=player_x, y=player_y, v_air=player_speed, psi=player_psi)
-
         # Set player's initial heading towards the general direction of the goal.
-        self.player.psi = self.heading_to_goal() + random.uniform(-INITIAL_HEADING_LIM, INITIAL_HEADING_LIM)
+        self.player.psi = relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y) + random.uniform(-INITIAL_HEADING_LIM, INITIAL_HEADING_LIM)
 
         # Number of traffic aircraft
         self.num_traffic = random.randint(MIN_TRAFFIC, MAX_TRAFFIC)
@@ -78,23 +95,15 @@ class ACAS2DGame:
     def minimum_separation(self):
         if self.num_traffic == 0:
             return float("inf")
-        distances = []
-        for t_air in self.traffic:
-            # Player and traffic aircraft positions as np.array
-            p = np.array((self.player.x, self.player.y))
-            t = np.array((t_air.x, t_air.y))
-            # Euclidean distance between player and goal
-            d = np.linalg.norm(p - t, 2)
-            distances.append(d)
+        distances = [distance(self.player.x, self.player.y, t.x, t.y) for t in self.traffic]
         return np.min(distances)
 
     def distance_to_goal(self):
-        # Player and goal positions as np.array
-        pl = np.array((self.player.x, self.player.y))
-        gl = np.array((self.goal_x, self.goal_y))
-        # Euclidean distance between player and goal
-        d = np.linalg.norm(pl - gl, 2)
-        return d
+        return distance(self.player.x, self.player.y, self.goal_x, self.goal_y)
+
+    def heading_to_goal(self):
+        # The psi that would lead the player straight to the goal
+        return relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
 
     def check_timeout(self):
         return self.steps == MAX_STEPS
@@ -103,73 +112,26 @@ class ACAS2DGame:
         return self.distance_to_goal() > self.max_distance
 
     def detect_collisions(self):
-        collision = False
-        for t_air in self.traffic:
-            # Player and traffic aircraft positions as np.array
-            p = np.array((self.player.x, self.player.y))
-            t = np.array((t_air.x, t_air.y))
-            # Euclidean distance between player and goal
-            d = np.linalg.norm(p - t, 2)
-            # If the distance is less than the collision radius, player reached the goal
-            if d < COLLISION_RADIUS:
-                collision = True
-                break
-        return collision
+        for t in self.traffic:
+            if distance(self.player.x, self.player.y, t.x, t.y) < COLLISION_RADIUS:
+                return True
+        return False
 
     def check_goal(self):
-        # Player and goal positions as np.array
-        pl = np.array((self.player.x, self.player.y))
-        gl = np.array((self.goal_x, self.goal_y))
-        # Euclidean distance between player and goal
-        d = np.linalg.norm(pl - gl, 2)
-        # If the distance is less than the collision radius, player reached the goal
-        goal = d < GOAL_RADIUS
-        return goal
-
-    def heading_to_goal(self):
-        # The psi that would lead the player straight to the goal
-        dx = self.goal_x - self.player.x
-        dy = self.goal_y - self.player.y
-        rads = math.atan2(dy, dx) % (2 * math.pi)
-        degrees = math.degrees(rads)
-        return degrees
+        return self.distance_to_goal() < GOAL_RADIUS
 
     def observe(self):
 
         # Increase number of steps in the game (all steps start with an observation)
         self.steps += 1
 
-        # Observation: Dictionary of  4 vectors of shape (MAX_TRAFFIC+2, )
-        # Keys -> x, y, v_air, psi
-        # Values ordering -> [player|goal|traffic|padding]
-        obs = {}
+        obs = [self.steps / MAX_STEPS,
+               self.goal_x / WIDTH,
+               self.goal_y / HEIGHT,
+               self.player.x / WIDTH,
+               self.player.y / HEIGHT]
 
-        # Current time step, normalised (from 0..MAX_STEPS to 0..1)
-        obs_time = [self.steps/MAX_STEPS]
-
-        # Goal position, normalised
-        obs_goal = [self.goal_x/WIDTH, self.goal_y/HEIGHT]
-
-        # Player position, airspeed and heading, normalised
-        obs_player = [self.player.x/WIDTH, self.player.y/HEIGHT,
-                      self.player.v_air/(AIRSPEED_FACTOR_MAX * AIRSPEED),
-                      self.player.psi/360]
-
-        # Traffic positions, airspeeds and headings, normalised
-        obs_traffic = []
-        for t in self.traffic:
-            obs_traffic.append(t.x/WIDTH)
-            obs_traffic.append(t.y/HEIGHT)
-            obs_traffic.append(t.v_air/(AIRSPEED_FACTOR_MAX * AIRSPEED))
-            obs_traffic.append(t.psi/360)
-        # Padding with zeros
-        obs_traffic += [0] * (4 * (MAX_TRAFFIC - self.num_traffic))
-
-        # Construct observation dict
-        obs["time"] = np.array(obs_time).astype(np.float64)
-        obs["goal"] = np.array(obs_goal).astype(np.float64)
-        obs["player"] = np.array(obs_player).astype(np.float64)
-        obs["traffic"] = np.array(obs_traffic).astype(np.float64)
+        obs = np.array(obs).astype(np.float64)
 
         # print("observe() 	>>> obs: {}".format(obs))
         return obs
@@ -193,19 +155,19 @@ class ACAS2DGame:
         # Time discount factor
         tdf = 1 - (self.steps / MAX_STEPS)
         # Time discounted distance reward
-        d = self.distance_to_goal()
+        d_goal = self.distance_to_goal()
         d_max = self.max_distance
-        r_dist = 1 - (d / d_max) ** 0.4
+        r_dist = 1 - (d_goal / d_max) ** 0.4
         reward += r_dist * tdf
-        if self.check_too_far():
-            reward += REWARD_TOO_FAR
-        # Penalise timeouts.
+        # if self.check_too_far():
+        #     reward -= REWARD_TOO_FAR
+        # # Penalise timeouts.
         if self.check_timeout():
-            reward += REWARD_TIMEOUT
-        # Penalise collisions.
-        if self.detect_collisions():
-            reward += REWARD_COLLISION
-        # Reward reaching the goal
+            reward -= REWARD_TIMEOUT_FACTOR * d_goal
+        # # Penalise collisions.
+        # if self.detect_collisions():
+        #     reward -= REWARD_COLLISION
+        # # Reward reaching the goal
         if self.check_goal():
             reward += REWARD_GOAL
         # Accumulate episode rewards
@@ -215,13 +177,13 @@ class ACAS2DGame:
 
     def is_done(self):
         done = False
-        # Check for Too Far
-        if self.check_too_far():
-            self.running = False
-            self.outcome = 4
-            done = True
+        # # Check for Too Far
+        # if self.check_too_far():
+        #     self.running = False
+        #     self.outcome = 4
+        #     done = True
         # Check for Timeout
-        elif self.check_timeout():
+        if self.check_timeout():
             self.running = False
             self.outcome = 3
             done = True
@@ -236,7 +198,7 @@ class ACAS2DGame:
             self.outcome = 1
             done = True
         if done:
-            print("is_done() 	>>> Outcome: {}".format(self.outcome))
+            print("is_done() 	>>> Outcome: {} Total Reward: {}".format(self.outcome, self.total_reward))
         return done
 
     def view(self):
@@ -285,8 +247,8 @@ class ACAS2DGame:
         self.screen.blit(ep, (WIDTH / 2 - 50, HEIGHT - 40))
 
         # Display distance to target
-        dist_to_goal = self.distance_to_goal()
-        dg = self.font.render("Distance to goal: {}".format(round(dist_to_goal, 1)), True, FONT_RGB)
+        d_goal = self.distance_to_goal()
+        dg = self.font.render("Distance to goal: {}".format(round(d_goal, 1)), True, FONT_RGB)
         self.screen.blit(dg, (WIDTH - 200, HEIGHT - 20))
 
         # Detect collisions

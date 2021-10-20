@@ -15,12 +15,7 @@ class ACAS2DEnv(gym.Env):
         # Observation space: (x, y, v_air, psi) for player, goal and traffic aircraft AND current time-step t
         # This space will be a Dict (keys = observation dimension)
         # Each key will be a normalised Box (range=[0, 1])
-        self.observation_space = Dict({
-            "time": Box(low=0, high=1, shape=(1,), dtype=np.float64),
-            "goal": Box(low=0, high=1, shape=(2,), dtype=np.float64),
-            "player": Box(low=0, high=1, shape=(4,), dtype=np.float64),
-            "traffic": Box(low=0, high=1, shape=(4*MAX_TRAFFIC,), dtype=np.float64)
-        })
+        self.observation_space = Box(low=0, high=1, shape=(5,), dtype=np.float64)
 
         # Action space: (lateral acceleration)
         # This space will be a symmetric and normalized Box action space (range=[-1, 1])
@@ -40,10 +35,7 @@ class ACAS2DEnv(gym.Env):
         # Check for termination
         done = self.game.is_done()
         # Debugging info from the ACAS2DGame class
-        info = {"ACTION": action,
-                "D_GOAL": self.game.distance_to_goal(),
-                "MIN_SEPARATION": self.game.minimum_separation(),
-                "R_TOTAL": self.game.total_reward}
+        info = {}
         return obs, reward, done, info
 
     def reset(self):

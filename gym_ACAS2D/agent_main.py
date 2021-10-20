@@ -23,7 +23,7 @@ def simulate(pause=False):
         print("Model loaded from file: {}".format(model_file))
     except FileNotFoundError:
         t_start = time.time()
-        model = PPO('MultiInputPolicy', environment, verbose=1)
+        model = PPO('MlpPolicy', environment, verbose=1)
         model.learn(total_timesteps=TOTAL_STEPS)
         model.save(model_file)
         print(f"Model training complete in {(time.time() - t_start) / 60.0} minutes.")
