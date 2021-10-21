@@ -260,10 +260,9 @@ class ACAS2DGame:
         ep = self.font.render("Episode: {}".format(self.episode), True, FONT_RGB)
         self.screen.blit(ep, (WIDTH / 2 - 50, HEIGHT - 40))
 
-        # # Display distance to target
-        # d_goal = self.distance_to_goal()
-        # dg = self.font.render("Distance to goal: {}".format(round(d_goal, 1)), True, FONT_RGB)
-        # self.screen.blit(dg, (WIDTH - 200, HEIGHT - 20))
+        # Display total reward
+        r_tot = self.font.render("Total reward: {}".format(round(self.total_reward, 1)), True, FONT_RGB)
+        self.screen.blit(r_tot, (WIDTH - 200, HEIGHT - 20))
 
         # Detect collisions
         if self.detect_collisions():
