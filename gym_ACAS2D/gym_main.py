@@ -29,8 +29,8 @@ def simulate(pause=False):
             if environment.game.quit:
                 return -1
             # Fixed action selection for now: Alternate between 0, 1 and -1.
-            # action = np.array([(episode % 3)-1])
-            action = np.array([0])
+            action = np.array([(episode % 3)-1])
+            # action = np.array([0])
             # Do action and get result
             next_state, reward, done, info = environment.step(action)
             # total_reward += reward

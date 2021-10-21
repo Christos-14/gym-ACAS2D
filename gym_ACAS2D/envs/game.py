@@ -16,7 +16,7 @@ def distance(x1, y1, x2, y2):
     return d
 
 
-def relative_angle(x1, x2, y1, y2):
+def relative_angle(x1, y1, x2, y2):
     # The psi that would lead the player straight to the goal
     dx = x2 - x1
     dy = y2 - y1
@@ -60,22 +60,23 @@ class ACAS2DGame:
         # Text font
         self.font = pygame.font.Font(FONT_NAME, FONT_SIZE)
 
-        # Set the goal position at random, in the top part of the airspace.
-        self.goal_x = WIDTH - AIRCRAFT_SIZE
-        self.goal_y = AIRCRAFT_SIZE
+        # # Set the goal position at random, in the top part of the airspace.
+        # self.goal_x = WIDTH
+        # self.goal_y = 0
 
-        # Maximum allowed distance from goal
-        self.max_distance = np.sqrt(WIDTH ** 2 + HEIGHT ** 2)
+        # # Maximum allowed distance from goal
+        # self.max_distance = np.sqrt(WIDTH ** 2 + HEIGHT ** 2)
 
         # Set the player starting position at random, in the bottom part of the airspace
         # Set the player starting psi and v_air
-        player_x = AIRCRAFT_SIZE
-        player_y = HEIGHT - AIRCRAFT_SIZE
+        player_x = 2*AIRCRAFT_SIZE
+        player_y = HEIGHT / 2
         player_speed = AIRSPEED
         player_psi = random.uniform(0, 360)
         self.player = PlayerAircraft(x=player_x, y=player_y, v_air=player_speed, psi=player_psi)
         # Set player's initial heading towards the general direction of the goal.
-        self.player.psi = relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y) + random.uniform(-INITIAL_HEADING_LIM, INITIAL_HEADING_LIM)
+        self.player.psi = (relative_angle(self.player.x, self.player.y, WIDTH, HEIGHT/2) +
+                           random.uniform(-INITIAL_HEADING_LIM, INITIAL_HEADING_LIM)) % 360
 
         # Number of traffic aircraft
         self.num_traffic = random.randint(MIN_TRAFFIC, MAX_TRAFFIC)
@@ -98,18 +99,21 @@ class ACAS2DGame:
         distances = [distance(self.player.x, self.player.y, t.x, t.y) for t in self.traffic]
         return np.min(distances)
 
-    def distance_to_goal(self):
-        return distance(self.player.x, self.player.y, self.goal_x, self.goal_y)
-
-    def heading_to_goal(self):
-        # The psi that would lead the player straight to the goal
-        return relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
+    # def distance_to_goal(self):
+    #     return distance(self.player.x, self.player.y, self.goal_x, self.goal_y)
+    #
+    # def heading_to_goal(self):
+    #     # The psi that would lead the player straight to the goal
+    #     return relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
 
     def check_timeout(self):
         return self.steps == MAX_STEPS
 
-    def check_too_far(self):
-        return self.distance_to_goal() > self.max_distance
+    # def check_runaway(self):
+    #     return self.player.x < 0 or \
+    #            self.player.y > HEIGHT or \
+    #            (self.player.y < 0 and self.player.x < WIDTH - GOAL_RADIUS) or \
+    #            (self.player.x > WIDTH and self.player.y > GOAL_RADIUS)
 
     def detect_collisions(self):
         for t in self.traffic:
@@ -117,8 +121,9 @@ class ACAS2DGame:
                 return True
         return False
 
-    def check_goal(self):
-        return self.distance_to_goal() < GOAL_RADIUS
+    # def check_goal(self):
+    #     return (self.player.y < 0 and self.player.x > WIDTH - GOAL_RADIUS) or \
+    #            (self.player.x > WIDTH and self.player.y < GOAL_RADIUS)
 
     def observe(self):
 
@@ -126,14 +131,16 @@ class ACAS2DGame:
         self.steps += 1
 
         obs = [self.steps / MAX_STEPS,
-               self.goal_x / WIDTH,
-               self.goal_y / HEIGHT,
+               # self.goal_x / WIDTH,
+               # self.goal_y / HEIGHT,
                self.player.x / WIDTH,
-               self.player.y / HEIGHT]
+               self.player.y / HEIGHT,
+               self.player.psi / 360]
 
         obs = np.array(obs).astype(np.float64)
 
         # print("observe() 	>>> obs: {}".format(obs))
+
         return obs
 
     def action(self, action):
@@ -148,55 +155,62 @@ class ACAS2DGame:
                 t.update_state()
                 # if t.out_of_bounds(WIDTH, HEIGHT):
                 #     t.bounce(WIDTH, HEIGHT)
+
         # print("action() 	>>> Action: {}".format(action))
 
     def evaluate(self):
         reward = 0
+        # Shaped reward guiding us to the goal
         # Time discount factor
-        tdf = 1 - (self.steps / MAX_STEPS)
+        # tdf = 1 - (self.steps / MAX_STEPS)
         # Time discounted distance reward
-        d_goal = self.distance_to_goal()
-        d_max = self.max_distance
-        r_dist = 1 - (d_goal / d_max) ** 0.4
-        reward += r_dist * tdf
-        # if self.check_too_far():
-        #     reward -= REWARD_TOO_FAR
+        # d_goal = self.distance_to_goal()
+        # d_max = self.max_distance
+        # r_dist = 1 - (d_goal / d_max) ** 0.4
+        x_max = (AIRSPEED / FPS) * MAX_STEPS
+        r_dist = np.tanh(self.player.x / x_max)
+        reward += r_dist
+        # # Penalise running away
+        # if self.check_runaway():
+        #     reward += REWARD_RUNAWAY_FACTOR * d_goal
         # # Penalise timeouts.
-        if self.check_timeout():
-            reward -= REWARD_TIMEOUT_FACTOR * d_goal
-        # # Penalise collisions.
-        # if self.detect_collisions():
-        #     reward -= REWARD_COLLISION
+        # if self.check_timeout():
+        #     reward += REWARD_TIMEOUT_FACTOR * d_goal
+        # Penalise collisions.
+        if self.detect_collisions():
+            reward += REWARD_COLLISION
         # # Reward reaching the goal
-        if self.check_goal():
-            reward += REWARD_GOAL
+        # if self.check_goal():
+        #     reward += REWARD_GOAL
         # Accumulate episode rewards
         self.total_reward += reward
+
         # print("evaluate() 	>>> Reward: {}".format(reward))
+
         return reward
 
     def is_done(self):
         done = False
-        # # Check for Too Far
-        # if self.check_too_far():
+        # # Check for run away
+        # if self.check_runaway():
         #     self.running = False
         #     self.outcome = 4
         #     done = True
-        # Check for Timeout
-        if self.check_timeout():
-            self.running = False
-            self.outcome = 3
-            done = True
         # Check for collisions
-        elif self.detect_collisions():
+        if self.detect_collisions():
             self.running = False
             self.outcome = 2
             done = True
-        # Check if we have reached the goal
-        elif self.check_goal():
+        # Check for Timeout
+        elif self.check_timeout():
             self.running = False
-            self.outcome = 1
             done = True
+            self.outcome = 3
+        # Check if we have reached the goal
+        # elif self.check_goal():
+        #     self.running = False
+        #     self.outcome = 1
+        #     done = True
         if done:
             print("is_done() 	>>> Outcome: {} Total Reward: {}".format(self.outcome, self.total_reward))
         return done
@@ -215,9 +229,9 @@ class ACAS2DGame:
         self.screen.blit(self.playerIMG, (self.player.x - (AIRCRAFT_SIZE / 2),
                                           self.player.y - (AIRCRAFT_SIZE / 2)))
 
-        # Place goal in the game
-        self.screen.blit(self.goalIMG, (self.goal_x - (AIRCRAFT_SIZE / 2),
-                                        self.goal_y - (AIRCRAFT_SIZE / 2)))
+        # # Place goal in the game
+        # self.screen.blit(self.goalIMG, (self.goal_x - (AIRCRAFT_SIZE / 2),
+        #                                 self.goal_y - (AIRCRAFT_SIZE / 2)))
 
         # Place traffic aircraft in the game
         for t in self.traffic:
@@ -228,9 +242,9 @@ class ACAS2DGame:
         pygame.draw.circle(self.screen, GREEN_RGB, (self.player.x, self.player.y),
                            COLLISION_RADIUS, 1)
 
-        # Draw goal radius around goal
-        pygame.draw.circle(self.screen, RED_RGB, (self.goal_x, self.goal_y),
-                           GOAL_RADIUS, 1)
+        # # Draw goal radius around goal
+        # pygame.draw.circle(self.screen, RED_RGB, (self.goal_x, self.goal_y),
+        #                    GOAL_RADIUS, 1)
 
         # for t in self.traffic:
         #     pygame.draw.circle(self.screen, RED_RGB, (t.x, t.y), COLLISION_RADIUS, 1)
@@ -246,20 +260,20 @@ class ACAS2DGame:
         ep = self.font.render("Episode: {}".format(self.episode), True, FONT_RGB)
         self.screen.blit(ep, (WIDTH / 2 - 50, HEIGHT - 40))
 
-        # Display distance to target
-        d_goal = self.distance_to_goal()
-        dg = self.font.render("Distance to goal: {}".format(round(d_goal, 1)), True, FONT_RGB)
-        self.screen.blit(dg, (WIDTH - 200, HEIGHT - 20))
+        # # Display distance to target
+        # d_goal = self.distance_to_goal()
+        # dg = self.font.render("Distance to goal: {}".format(round(d_goal, 1)), True, FONT_RGB)
+        # self.screen.blit(dg, (WIDTH - 200, HEIGHT - 20))
 
         # Detect collisions
         if self.detect_collisions():
             mes = self.font.render("Collision!", True, FONT_RGB)
             self.screen.blit(mes, (WIDTH / 2 - 30, HEIGHT / 2))
 
-        # Check if player reached the goal
-        if self.check_goal():
-            mes = self.font.render("Goal reached!", True, FONT_RGB)
-            self.screen.blit(mes, (WIDTH / 2 - 40, HEIGHT / 2))
+        # # Check if player reached the goal
+        # if self.check_goal():
+        #     mes = self.font.render("Goal reached!", True, FONT_RGB)
+        #     self.screen.blit(mes, (WIDTH / 2 - 40, HEIGHT / 2))
 
         # Update the game screen
         pygame.display.update()
