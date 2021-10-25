@@ -25,6 +25,28 @@ def relative_angle(x1, y1, x2, y2):
     return degrees
 
 
+def separation_reward(s):
+    if 0 <= s <= SAFE_RADIUS:
+        return (REWARD_COLLISION + (-REWARD_COLLISION / SAFE_RADIUS) * s) / abs(REWARD_COLLISION)
+    elif s > SAFE_RADIUS:
+        return 0
+    else:
+        raise ValueError("Min separation cannot be negative.")
+
+
+def distance_reward(d):
+    if d >= 0:
+        d_goal_init = (WIDTH - GOAL_RADIUS) - (2 * AIRCRAFT_SIZE)
+        r = REWARD_GOAL - (REWARD_GOAL / d_goal_init) * d
+        return max(r, -REWARD_GOAL) / REWARD_GOAL
+    else:
+        raise ValueError("Distance to goal cannot be negative.")
+
+
+def step_reward(d, s):
+    return distance_reward(d) + separation_reward(s)
+
+
 class ACAS2DGame:
     def __init__(self, episode=None, manual=False):
 
@@ -69,7 +91,7 @@ class ACAS2DGame:
 
         # Set the player starting position at random, in the bottom part of the airspace
         # Set the player starting psi and v_air
-        player_x = 2*AIRCRAFT_SIZE
+        player_x = COLLISION_RADIUS
         player_y = HEIGHT / 2
         player_speed = AIRSPEED
         player_psi = random.uniform(0, 360)
@@ -89,14 +111,25 @@ class ACAS2DGame:
         # Set the traffic aircraft positions, headings and speeds at random, in the middle part of the airspace.
         self.traffic = []
         for t in range(self.num_traffic):
-            # Random position in the mid part of the airspace
-            t_x = random.uniform(0, WIDTH - AIRCRAFT_SIZE)
-            t_y = random.uniform(0, 3 * HEIGHT / 5)
-            # Random v_air
-            t_speed = random.uniform(AIRSPEED_FACTOR_MIN, AIRSPEED_FACTOR_MAX) * AIRSPEED
-            # Random psi: 0..360 degrees
-            t_heading = random.uniform(0, 360)
-            self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
+
+            if t == 0:
+                # Random position in the mid part of the airspace
+                t_x = WIDTH - COLLISION_RADIUS
+                t_y = COLLISION_RADIUS
+                # Random v_air
+                t_speed = random.uniform(AIRSPEED_FACTOR_MIN, AIRSPEED_FACTOR_MAX) * AIRSPEED
+                # Random psi: 0..360 degrees
+                t_heading = random.uniform(110, 160)
+                self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
+            else:
+                # Random position in the mid part of the airspace
+                t_x = random.uniform(0, WIDTH - AIRCRAFT_SIZE)
+                t_y = random.uniform(0, 3 * HEIGHT / 5)
+                # Random v_air
+                t_speed = random.uniform(AIRSPEED_FACTOR_MIN, AIRSPEED_FACTOR_MAX) * AIRSPEED
+                # Random psi: 0..360 degrees
+                t_heading = random.uniform(0, 360)
+                self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
 
     def minimum_separation(self):
         if self.num_traffic == 0:
@@ -122,7 +155,7 @@ class ACAS2DGame:
 
     def detect_collisions(self):
         for t in self.traffic:
-            if distance(self.player.x, self.player.y, t.x, t.y) < COLLISION_RADIUS:
+            if distance(self.player.x, self.player.y, t.x, t.y) < 2 * COLLISION_RADIUS:
                 return True
         return False
 
@@ -163,27 +196,29 @@ class ACAS2DGame:
         # print("action() 	>>> Action: {}".format(action))
 
     def evaluate(self):
-        reward = 0
+        # reward = 0
         # Shaped reward guiding us to the goal
         # Time discount factor
         tdf = 1 - (self.steps / MAX_STEPS)
-        # Time discounted distance reward
-        d_goal = self.distance_to_goal()
-        d_init = self.d_goal_initial
-        r_dist = np.tanh((d_init - d_goal) / self.d_goal_max)
-        # x_max = (AIRSPEED / FPS) * MAX_STEPS
-        # r_dist = np.tanh(self.player.x / x_max)
-        reward += r_dist * tdf
+        reward = step_reward(self.distance_to_goal(), self.minimum_separation()) * tdf
+        # # Time discounted distance reward
+        # d_goal = self.distance_to_goal()
+        # d_init = self.d_goal_initial
+        # r_dist = np.tanh((d_init - d_goal) / self.d_goal_max)
+        # # x_max = (AIRSPEED / FPS) * MAX_STEPS
+        # # r_dist = np.tanh(self.player.x / x_max)
+        # reward += r_dist * tdf
         # # Penalise running away
         # if self.check_runaway():
         #     reward += REWARD_RUNAWAY_FACTOR * d_goal
         # # Penalise timeouts.
         # if self.check_timeout():
         #     reward += REWARD_TIMEOUT_FACTOR * d_goal
+
         # Penalise collisions.
         if self.detect_collisions():
             reward += REWARD_COLLISION
-        # # Reward reaching the goal
+        # Reward reaching the goal
         if self.check_goal():
             reward += REWARD_GOAL
         # Accumulate episode rewards
@@ -242,16 +277,17 @@ class ACAS2DGame:
             self.screen.blit(self.trafficIMG, (t.x - (AIRCRAFT_SIZE / 2),
                                                t.y - (AIRCRAFT_SIZE / 2)))
 
-        # Draw collision circle around aircraft
+        # Draw collision radius around aircraft
         pygame.draw.circle(self.screen, GREEN_RGB, (self.player.x, self.player.y),
                            COLLISION_RADIUS, 1)
 
         # Draw goal radius around goal
-        pygame.draw.circle(self.screen, RED_RGB, (self.goal_x, self.goal_y),
+        pygame.draw.circle(self.screen, YELLOW_RBG, (self.goal_x, self.goal_y),
                            GOAL_RADIUS, 1)
 
-        # for t in self.traffic:
-        #     pygame.draw.circle(self.screen, RED_RGB, (t.x, t.y), COLLISION_RADIUS, 1)
+        # Draw collision radius around traffic aircraft
+        for t in self.traffic:
+            pygame.draw.circle(self.screen, RED_RGB, (t.x, t.y), COLLISION_RADIUS, 1)
 
         # Display minimum separation
         min_separation = self.minimum_separation()
