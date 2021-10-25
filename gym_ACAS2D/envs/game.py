@@ -251,7 +251,7 @@ class ACAS2DGame:
             self.outcome = 1
             done = True
         if done:
-            print("is_done() 	>>> Outcome: {} Total Reward: {}".format(self.outcome, self.total_reward))
+            print("is_done() 	>>> Outcome: {} Total Reward: {}".format(OUTCOME_NAMES[self.outcome], self.total_reward))
         return done
 
     def view(self):
