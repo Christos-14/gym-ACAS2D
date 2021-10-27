@@ -106,26 +106,26 @@ if __name__ == '__main__':
 
         # Display minimum separation
         min_separation = game.minimum_separation()
-        ms = font.render("Min. Separation: {}".format(round(min_separation, 3)), True, FONT_RGB)
+        ms = font.render("Min. Separation: {}".format(round(min_separation, 3)), True, BLACK_RGB)
         screen.blit(ms, (20, HEIGHT-20))
 
         # Display 'time' (number of game loop iterations)
-        ts = font.render("Time steps: {}".format(time_steps), True, FONT_RGB)
+        ts = font.render("Time steps: {}".format(time_steps), True, BLACK_RGB)
         screen.blit(ts, (round(WIDTH/2) - 50, HEIGHT - 20))
 
         # Display distance to target
         dist_to_goal = game.distance_to_goal()
-        dg = font.render("Distance to goal: {}".format(round(dist_to_goal, 3)), True, FONT_RGB)
+        dg = font.render("Distance to goal: {}".format(round(dist_to_goal, 3)), True, BLACK_RGB)
         screen.blit(dg, (WIDTH - 200, HEIGHT - 20))
 
         # Detect collisions
         if game.detect_collisions():
-            mes = font.render("Collision!", True, FONT_RGB)
+            mes = font.render("Collision!", True, BLACK_RGB)
             screen.blit(mes, (round(WIDTH/2) - 30, round(HEIGHT/2)))
 
         # Check if player reached the goal
         if game.check_goal():
-            mes = font.render("Goal reached!", True, FONT_RGB)
+            mes = font.render("Goal reached!", True, BLACK_RGB)
             screen.blit(mes, (round(WIDTH/2) - 40, round(HEIGHT/2)))
 
         # Update the game screen

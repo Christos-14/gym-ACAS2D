@@ -25,26 +25,88 @@ def relative_angle(x1, y1, x2, y2):
     return degrees
 
 
-def separation_reward(s):
-    if 0 <= s <= SAFE_RADIUS:
-        return (REWARD_COLLISION + (-REWARD_COLLISION / SAFE_RADIUS) * s) / abs(REWARD_COLLISION)
-    elif s > SAFE_RADIUS:
-        return 0
+def closing_speed(aircraft1, aircraft2):
+
+    # Delta t
+    dt = 1 / FPS
+
+    # Aircraft 1
+    psi_dot_1 = aircraft1.a_lat / aircraft1.v_air
+    psi_1 = (aircraft1.psi + (psi_dot_1 * dt)) % 360
+    psi_rad_1 = (psi_1 / 360.0) * 2 * math.pi
+    x1 = aircraft1.x + (aircraft1.v_air * math.cos(psi_rad_1) * dt)
+    y1 = aircraft1.y + (aircraft1.v_air * math.sin(psi_rad_1) * dt)
+
+    p1 = np.array([x1, y1])
+    v1 = np.array([aircraft1.v_air * math.cos(psi_rad_1) * dt, aircraft1.v_air * math.sin(psi_rad_1) * dt])
+
+    # Aircraft 2
+    psi_dot_2 = aircraft2.a_lat / aircraft2.v_air
+    psi_2 = (aircraft2.psi + (psi_dot_2 * dt)) % 360
+    psi_rad_2 = (psi_2 / 360.0) * 2 * math.pi
+    x2 = aircraft2.x + (aircraft2.v_air * math.cos(psi_rad_2) * dt)
+    y2 = aircraft2.y + (aircraft2.v_air * math.sin(psi_rad_2) * dt)
+
+    p2 = np.array([x2, y2])
+    v2 = np.array([aircraft2.v_air * math.cos(psi_rad_2) * dt, aircraft1.v_air * math.sin(psi_rad_2) * dt])
+
+    # Closing speed
+    c = np.dot((v1 - v2), (p1 - p2)) / distance(x1, y1, x2, y2)
+
+    return c
+
+
+def time_to_closest_approach(aircraft1, aircraft2):
+    c = closing_speed(aircraft1, aircraft2)
+    d = distance(aircraft1.x, aircraft1.y, aircraft2.x, aircraft2.y)
+    return - d / c
+
+
+def closest_approach(aircraft1, aircraft2):
+
+    t_closest = time_to_closest_approach(aircraft1, aircraft2) / FPS
+
+    # Aircraft 1
+    psi_rad_1 = (aircraft1.psi / 360.0) * 2 * math.pi
+    x1 = aircraft1.x + (aircraft1.v_air * math.cos(psi_rad_1) * t_closest)
+    y1 = aircraft1.y + (aircraft1.v_air * math.sin(psi_rad_1) * t_closest)
+
+    # Aircraft 2
+    psi_rad_2 = (aircraft2.psi / 360.0) * 2 * math.pi
+    x2 = aircraft2.x + (aircraft2.v_air * math.cos(psi_rad_2) * t_closest)
+    y2 = aircraft2.y + (aircraft2.v_air * math.sin(psi_rad_2) * t_closest)
+
+    return distance(x1, y1, x2, y2)
+
+
+def delta_heading(psi, phi):
+    return min(abs(psi-phi), abs(psi-phi-360))
+
+
+def heading_reward(psi, phi):
+    if (0 <= psi <= 360) and (0 <= phi <= 360):
+        return (1 - delta_heading(psi, phi)/180) ** 4
     else:
-        raise ValueError("Min separation cannot be negative.")
+        raise ValueError("Heading and relative angle must be in [0, 360].")
 
 
-def distance_reward(d):
-    if d >= 0:
-        d_goal_init = (WIDTH - GOAL_RADIUS) - (2 * AIRCRAFT_SIZE)
-        r = REWARD_GOAL - (REWARD_GOAL / d_goal_init) * d
-        return max(r, -REWARD_GOAL) / REWARD_GOAL
+# def separation_reward(s):
+#     if s >= 0:
+#         if s <= 2 * COLLISION_RADIUS:
+#             return 0
+#         elif s >= SAFE_RADIUS:
+#             return 1
+#         else:
+#             return (s / SAFE_RADIUS) ** 4
+#     else:
+#         raise ValueError("Separation cannot be negative.")
+
+
+def closest_approach_reward(d_sep, d_cpa):
+    if (0 <= d_sep <= SAFE_RADIUS) and (0 <= d_cpa <= SAFE_RADIUS):
+        return (d_cpa / SAFE_RADIUS) ** 2
     else:
-        raise ValueError("Distance to goal cannot be negative.")
-
-
-def step_reward(d, s):
-    return distance_reward(d) + separation_reward(s)
+        return 1
 
 
 class ACAS2DGame:
@@ -97,13 +159,15 @@ class ACAS2DGame:
         player_psi = random.uniform(0, 360)
         self.player = PlayerAircraft(x=player_x, y=player_y, v_air=player_speed, psi=player_psi)
         # Set player's initial heading towards the general direction of the goal.
-        self.player.psi = (relative_angle(self.player.x, self.player.y, WIDTH, HEIGHT/2) +
+        self.player.psi = (relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y) +
                            random.uniform(-INITIAL_HEADING_LIM, INITIAL_HEADING_LIM)) % 360
 
         # Initial distance to goal
         self.d_goal_initial = self.distance_to_goal()
         # Max possible distance from goal
         self.d_goal_max = self.distance_to_goal() + (AIRSPEED / FPS) * MAX_STEPS
+        # Maximum possible separation
+        self.d_separation_max = np.sqrt(WIDTH**2 + HEIGHT**2) + (2 * (AIRSPEED / FPS) * MAX_STEPS)
 
         # Number of traffic aircraft
         self.num_traffic = random.randint(MIN_TRAFFIC, MAX_TRAFFIC)
@@ -139,19 +203,13 @@ class ACAS2DGame:
 
     def distance_to_goal(self):
         return distance(self.player.x, self.player.y, self.goal_x, self.goal_y)
-    #
-    # def heading_to_goal(self):
-    #     # The psi that would lead the player straight to the goal
-    #     return relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
+
+    def heading_to_goal(self):
+        # The psi that would lead the player straight to the goal
+        return relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
 
     def check_timeout(self):
         return self.steps == MAX_STEPS
-
-    # def check_runaway(self):
-    #     return self.player.x < 0 or \
-    #            self.player.y > HEIGHT or \
-    #            (self.player.y < 0 and self.player.x < WIDTH - GOAL_RADIUS) or \
-    #            (self.player.x > WIDTH and self.player.y > GOAL_RADIUS)
 
     def detect_collisions(self):
         for t in self.traffic:
@@ -172,7 +230,17 @@ class ACAS2DGame:
                self.player.y / HEIGHT,
                self.player.psi / 360,
                self.distance_to_goal() / self.d_goal_max,
-               relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y) / 360]
+               self.heading_to_goal() / 360]
+
+        for t in self.traffic:
+            x1, y1 = self.player.x, self.player.y
+            x2, y2 = t.x, t.y
+            obs.append(distance(x1, y1, x2, y2) / self.d_separation_max)
+            obs.append(relative_angle(x1, y1, x2, y2) / 360)
+            obs.append(closest_approach(self.player, t) / self.d_separation_max)
+
+        # Padding
+        obs += [0] * (3 * (MAX_TRAFFIC - self.num_traffic))
 
         obs = np.array(obs).astype(np.float64)
 
@@ -190,17 +258,24 @@ class ACAS2DGame:
         for t in self.traffic:
             if self.running:
                 t.update_state()
-                # if t.out_of_bounds(WIDTH, HEIGHT):
-                #     t.bounce(WIDTH, HEIGHT)
 
         # print("action() 	>>> Action: {}".format(action))
 
     def evaluate(self):
+
         # reward = 0
-        # Shaped reward guiding us to the goal
+
         # Time discount factor
         tdf = 1 - (self.steps / MAX_STEPS)
-        reward = step_reward(self.distance_to_goal(), self.minimum_separation()) * tdf
+
+        psi = self.player.psi
+        phi = relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
+
+        d_sep = self.minimum_separation()
+        d_cpa = closest_approach(self.player, self.traffic[0])
+
+        reward = heading_reward(psi, phi) * closest_approach_reward(d_sep, d_cpa) * tdf
+
         # # Time discounted distance reward
         # d_goal = self.distance_to_goal()
         # d_init = self.d_goal_initial
@@ -213,14 +288,16 @@ class ACAS2DGame:
         #     reward += REWARD_RUNAWAY_FACTOR * d_goal
         # # Penalise timeouts.
         # if self.check_timeout():
-        #     reward += REWARD_TIMEOUT_FACTOR * d_goal
+        #     reward -= self.distance_to_goal()
 
         # Penalise collisions.
         if self.detect_collisions():
             reward += REWARD_COLLISION
+
         # Reward reaching the goal
         if self.check_goal():
             reward += REWARD_GOAL
+
         # Accumulate episode rewards
         self.total_reward += reward
 
@@ -230,11 +307,6 @@ class ACAS2DGame:
 
     def is_done(self):
         done = False
-        # # Check for run away
-        # if self.check_runaway():
-        #     self.running = False
-        #     self.outcome = 4
-        #     done = True
         # Check for Timeout
         if self.check_timeout():
             self.running = False
@@ -291,27 +363,39 @@ class ACAS2DGame:
 
         # Display minimum separation
         min_separation = self.minimum_separation()
-        ms = self.font.render("Min. Separation: {}".format(round(min_separation, 1)), True, FONT_RGB)
+        ms = self.font.render("Min. Separation: {}".format(round(min_separation, 1)), True, BLACK_RGB)
         self.screen.blit(ms, (20, HEIGHT - 20))
+        # Display closing speed
+        c_speed = closing_speed(self.player, self.traffic[0])
+        cs = self.font.render("Closing Speed: {}".format(round(c_speed, 1)), True, BLACK_RGB)
+        self.screen.blit(cs, (20, HEIGHT - 40))
+        # Display projected t_closest_approach
+        t_closest_approach = time_to_closest_approach(self.player, self.traffic[0])
+        tc = self.font.render("Time to Closest Approach: {}".format(round(t_closest_approach, 1)), True, BLACK_RGB)
+        self.screen.blit(tc, (20, HEIGHT - 80))
+        # Display projected closest_approach
+        d_closest_approach = closest_approach(self.player, self.traffic[0])
+        ca = self.font.render("Closest Approach: {}".format(round(d_closest_approach, 1)), True, BLACK_RGB)
+        self.screen.blit(ca, (20, HEIGHT - 60))
 
         # Display episode and 'time' (number of game loop iterations)
-        st = self.font.render("Steps: {}".format(self.steps), True, FONT_RGB)
+        st = self.font.render("Steps: {}".format(self.steps), True, BLACK_RGB)
         self.screen.blit(st, (WIDTH / 2 - 50, HEIGHT - 20))
-        ep = self.font.render("Episode: {}".format(self.episode), True, FONT_RGB)
+        ep = self.font.render("Episode: {}".format(self.episode), True, BLACK_RGB)
         self.screen.blit(ep, (WIDTH / 2 - 50, HEIGHT - 40))
 
         # Display total reward
-        r_tot = self.font.render("Total reward: {}".format(round(self.total_reward, 1)), True, FONT_RGB)
+        r_tot = self.font.render("Total reward: {}".format(round(self.total_reward, 1)), True, BLACK_RGB)
         self.screen.blit(r_tot, (WIDTH - 200, HEIGHT - 20))
 
         # # Detect collisions
         # if self.detect_collisions():
-        #     mes = self.font.render("Collision!", True, FONT_RGB)
+        #     mes = self.font.render("Collision!", True, BLACK_RGB)
         #     self.screen.blit(mes, (WIDTH / 2 - 30, HEIGHT / 2))
 
         # # Check if player reached the goal
         # if self.check_goal():
-        #     mes = self.font.render("Goal reached!", True, FONT_RGB)
+        #     mes = self.font.render("Goal reached!", True, BLACK_RGB)
         #     self.screen.blit(mes, (WIDTH / 2 - 40, HEIGHT / 2))
 
         # Update the game screen
