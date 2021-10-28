@@ -79,20 +79,6 @@ def closing_speed(aircraft1, aircraft2):
 #     return distance(x1, y1, x2, y2)
 
 
-def delta_heading(psi, phi):
-    return min(abs(psi-phi), abs(psi-phi-360))
-
-
-def heading_reward(psi, phi, c):
-    if (0 <= psi <= 360) and (0 <= phi <= 360):
-        if c < 0:
-            return 1
-        else:
-            return (1 - delta_heading(psi, phi)/180) ** 4
-    else:
-        raise ValueError("Heading and relative angle must be in [0, 360].")
-
-
 # def distance_reward(d, exp=0.5):
 #     if d >= 0:
 #         d_goal_init = (WIDTH - GOAL_RADIUS) - (2 * AIRCRAFT_SIZE)
@@ -101,21 +87,29 @@ def heading_reward(psi, phi, c):
 #         raise ValueError("Distance to goal cannot be negative.")
 
 
-def separation_reward(s, c, exp=2):
-    if s >= 0:
-        if c > 0:
-            return 1
-        else:
-            return min(1, (s / (2 * SAFE_RADIUS)) ** exp)
-    else:
-        raise ValueError("Separation cannot be negative.")
-
-
 # def closest_approach_reward(d_sep, d_cpa):
 #     if (0 <= d_sep <= SAFE_RADIUS) and (0 <= d_cpa <= SAFE_RADIUS):
 #         return (d_cpa / SAFE_RADIUS) ** 2
 #     else:
 #         return 1
+
+
+def delta_heading(psi, phi):
+    return min(abs(psi-phi), abs(psi-phi-360))
+
+
+def heading_reward(psi, phi):
+    if (0 <= psi <= 360) and (0 <= phi <= 360):
+        return (1 - delta_heading(psi, phi)/180) ** 4
+    else:
+        raise ValueError("Heading and relative angle must be in [0, 360].")
+
+
+def separation_reward(s, c, exp=2):
+    if s >= 0:
+        return min(1, (s / (2 * SAFE_RADIUS)) ** exp)
+    else:
+        raise ValueError("Separation cannot be negative.")
 
 
 class ACAS2DGame:
@@ -273,19 +267,19 @@ class ACAS2DGame:
 
         # reward = 0
 
-        # Time discount factor
-        tdf = 1 - (self.steps / MAX_STEPS)
-
-        psi = self.player.psi
-        phi = relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
-
-        # d_sep = self.minimum_separation()
-        # d_cpa = closest_approach(self.player, self.traffic[0])
-        # d_goal = self.distance_to_goal()
         d_separation = self.minimum_separation()
         v_closing = closing_speed(self.player, self.traffic[0])
 
-        reward = heading_reward(psi, phi, v_closing) * separation_reward(d_separation, v_closing) * tdf
+        if v_closing < 0 and d_separation < SAFE_RADIUS:
+            r_step = separation_reward(d_separation, v_closing)
+        else:
+            psi = self.player.psi
+            phi = relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
+            r_step = heading_reward(psi, phi)
+
+        # Time discount factor
+        tdf = 1 - (self.steps / MAX_STEPS)
+        reward = r_step * tdf
 
         # # Time discounted distance reward
         # d_goal = self.distance_to_goal()
@@ -397,12 +391,12 @@ class ACAS2DGame:
         # r_dis = self.font.render("Step distance reward: {}".format(round(distance_reward(d_goal), 3)),
         #                          True, BLACK_RGB)
         # self.screen.blit(r_dis, (WIDTH - 200, HEIGHT - 60))
-        v_closing = closing_speed(self.player, self.traffic[0])
         psi = self.player.psi
         phi = relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
-        r_psi = self.font.render("Step heading reward: {}".format(round(heading_reward(psi, phi, v_closing), 3)),
+        r_psi = self.font.render("Step heading reward: {}".format(round(heading_reward(psi, phi), 3)),
                                  True, BLACK_RGB)
         self.screen.blit(r_psi, (WIDTH - 200, HEIGHT - 60))
+        v_closing = closing_speed(self.player, self.traffic[0])
         d_sep = self.minimum_separation()
         r_sep = self.font.render("Step separation reward: {}".format(round(separation_reward(d_sep, v_closing), 3)),
                                  True, BLACK_RGB)
