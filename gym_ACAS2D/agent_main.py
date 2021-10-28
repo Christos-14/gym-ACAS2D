@@ -23,8 +23,11 @@ def simulate(pause=False):
         print("Model loaded from file: {}".format(model_file))
     except FileNotFoundError:
         t_start = time.time()
-        model = PPO('MlpPolicy', environment, verbose=1)
-        model.learn(total_timesteps=TOTAL_STEPS)
+        model = PPO('MlpPolicy', environment,
+                    verbose=1,
+                    seed=RANDOM_SEED,
+                    tensorboard_log="./ACAS2D_PPO_tensorboard/")
+        model.learn(total_timesteps=TOTAL_STEPS, tb_log_name="run_{}".format(TOTAL_STEPS))
         model.save(model_file)
         print(f"Model training complete in {(time.time() - t_start) / 60.0} minutes.")
 

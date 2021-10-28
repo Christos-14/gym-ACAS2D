@@ -15,7 +15,7 @@ class ACAS2DEnv(gym.Env):
         # Observation space: (x, y, v_air, psi) for player, goal and traffic aircraft AND current time-step t
         # This space will be a Dict (keys = observation dimension)
         # Each key will be a normalised Box (range=[0, 1])
-        obs_length = 6 + 3 * MAX_TRAFFIC
+        obs_length = 6 + 2 * MAX_TRAFFIC
         self.observation_space = Box(low=0, high=1, shape=(obs_length,), dtype=np.float64)
 
         # Action space: (lateral acceleration)
