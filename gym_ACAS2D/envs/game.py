@@ -363,7 +363,7 @@ class ACAS2DGame:
         # Draw collision radius around aircraft
         pygame.draw.circle(self.screen, RED_RGB, (self.player.x, self.player.y), COLLISION_RADIUS, 1)
         # pygame.draw.circle(self.screen, YELLOW_RBG, (self.player.x, self.player.y), DANGER_RADIUS, 1)
-        pygame.draw.circle(self.screen, GREEN_RGB, (self.player.x, self.player.y), SAFE_RADIUS, 1)
+        # pygame.draw.circle(self.screen, GREEN_RGB, (self.player.x, self.player.y), SAFE_RADIUS, 1)
 
         # Draw goal radius around goal
         pygame.draw.circle(self.screen, YELLOW_RBG, (self.goal_x, self.goal_y),
@@ -373,7 +373,7 @@ class ACAS2DGame:
         for t in self.traffic:
             pygame.draw.circle(self.screen, RED_RGB, (t.x, t.y), COLLISION_RADIUS, 1)
             # pygame.draw.circle(self.screen, YELLOW_RBG, (t.x, t.y), DANGER_RADIUS, 1)
-            pygame.draw.circle(self.screen, GREEN_RGB, (t.x, t.y), SAFE_RADIUS, 1)
+            # pygame.draw.circle(self.screen, GREEN_RGB, (t.x, t.y), SAFE_RADIUS, 1)
 
         # Display distance/separation
         d_goal = self.distance_to_goal()
