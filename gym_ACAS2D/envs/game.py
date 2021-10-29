@@ -105,11 +105,19 @@ def heading_reward(psi, phi):
         raise ValueError("Heading and relative angle must be in [0, 360].")
 
 
-def separation_reward(s, c, exp=2):
-    if s >= 0:
-        return min(1, (s / (2 * SAFE_RADIUS)) ** exp)
+def closing_speed_reward(c, exp=2):
+    if c > 0:
+        return 1
     else:
-        raise ValueError("Separation cannot be negative.")
+        c_max = 2 * (AIRSPEED / FPS)
+        return max(0, 1 - (abs(c)/c_max) ** exp)
+
+
+# def separation_reward(s, c, exp=2):
+#     if s >= 0:
+#         return min(1, (s / (2 * SAFE_RADIUS)) ** exp)
+#     else:
+#         raise ValueError("Separation cannot be negative.")
 
 
 class ACAS2DGame:
@@ -267,15 +275,12 @@ class ACAS2DGame:
 
         # reward = 0
 
-        d_separation = self.minimum_separation()
+        # d_separation = self.minimum_separation()
         v_closing = closing_speed(self.player, self.traffic[0])
+        psi = self.player.psi
+        phi = relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
 
-        if v_closing < 0 and d_separation < SAFE_RADIUS:
-            r_step = separation_reward(d_separation, v_closing)
-        else:
-            psi = self.player.psi
-            phi = relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
-            r_step = heading_reward(psi, phi)
+        r_step = heading_reward(psi, phi) * closing_speed_reward(v_closing)
 
         # Time discount factor
         tdf = 1 - (self.steps / MAX_STEPS)
@@ -373,10 +378,13 @@ class ACAS2DGame:
         # Display distance/separation
         d_goal = self.distance_to_goal()
         dg = self.font.render("Distance to goal: {}".format(round(d_goal, 1)), True, BLACK_RGB)
-        self.screen.blit(dg, (20, HEIGHT - 40))
+        self.screen.blit(dg, (20, HEIGHT - 20))
         min_separation = self.minimum_separation()
         ms = self.font.render("Min. Separation: {}".format(round(min_separation, 1)), True, BLACK_RGB)
-        self.screen.blit(ms, (20, HEIGHT - 20))
+        self.screen.blit(ms, (20, HEIGHT - 40))
+        v_closing = closing_speed(self.player, self.traffic[0])
+        cs = self.font.render("Closing Speed: {}".format(round(v_closing, 1)), True, BLACK_RGB)
+        self.screen.blit(cs, (20, HEIGHT - 60))
 
         # Display episode and 'time' (number of game loop iterations)
         st = self.font.render("Steps: {}".format(self.steps), True, BLACK_RGB)
@@ -386,7 +394,7 @@ class ACAS2DGame:
 
         # Display reward
         r_tot = self.font.render("Total reward: {}".format(round(self.total_reward, 1)), True, BLACK_RGB)
-        self.screen.blit(r_tot, (WIDTH - 200, HEIGHT - 20))
+        self.screen.blit(r_tot, (WIDTH - 300, HEIGHT - 20))
         # d_goal = self.distance_to_goal()
         # r_dis = self.font.render("Step distance reward: {}".format(round(distance_reward(d_goal), 3)),
         #                          True, BLACK_RGB)
@@ -395,12 +403,11 @@ class ACAS2DGame:
         phi = relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
         r_psi = self.font.render("Step heading reward: {}".format(round(heading_reward(psi, phi), 3)),
                                  True, BLACK_RGB)
-        self.screen.blit(r_psi, (WIDTH - 200, HEIGHT - 60))
+        self.screen.blit(r_psi, (WIDTH - 300, HEIGHT - 60))
         v_closing = closing_speed(self.player, self.traffic[0])
-        d_sep = self.minimum_separation()
-        r_sep = self.font.render("Step separation reward: {}".format(round(separation_reward(d_sep, v_closing), 3)),
+        r_clo = self.font.render("Step closing speed reward: {}".format(round(closing_speed_reward(v_closing), 3)),
                                  True, BLACK_RGB)
-        self.screen.blit(r_sep, (WIDTH - 200, HEIGHT - 40))
+        self.screen.blit(r_clo, (WIDTH - 300, HEIGHT - 40))
 
         # Update the game screen
         pygame.display.update()
