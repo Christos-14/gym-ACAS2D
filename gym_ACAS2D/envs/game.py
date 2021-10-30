@@ -25,6 +25,33 @@ def relative_angle(x1, y1, x2, y2):
     return degrees
 
 
+def relative_speed(aircraft1, aircraft2):
+    # Aircraft 1
+    v1 = aircraft1.v_air
+    psi1 = aircraft1.psi
+    psi1_rad = (psi1 / 360.0) * 2 * math.pi
+    # Aircraft 2
+    v2 = aircraft2.v_air
+    psi2 = aircraft2.psi
+    psi2_rad = (psi2 / 360.0) * 2 * math.pi
+    # Velocity of AC 1 relative to AC 2
+    v12x = v1 * np.cos(psi1_rad) - v2 * np.cos(psi2_rad)
+    v12y = v1 * np.sin(psi1_rad) - v2 * np.sin(psi2_rad)
+    return v12x, v12y
+
+
+def distance_closest_approach(aircraft1, aircraft2):
+    d = distance(aircraft1.x, aircraft1.y,
+                 aircraft2.x, aircraft2.y)
+    a_rel = relative_angle(aircraft1.x, aircraft1.y,
+                           aircraft2.x, aircraft2.y)
+    a_rel_rad = (a_rel / 360.0) * 2 * math.pi
+    v12x, v12y = relative_speed(aircraft1, aircraft2)
+    h_rel_rad = np.arctan(v12y/v12x)
+    dca = d * np.sin(a_rel_rad-h_rel_rad)
+    return dca
+
+
 def closing_speed(aircraft1, aircraft2):
 
     # Delta t
@@ -54,29 +81,6 @@ def closing_speed(aircraft1, aircraft2):
     c = np.dot((v1 - v2), (p1 - p2)) / distance(x1, y1, x2, y2)
 
     return c
-
-
-# def time_to_closest_approach(aircraft1, aircraft2):
-#     c = closing_speed(aircraft1, aircraft2)
-#     d = distance(aircraft1.x, aircraft1.y, aircraft2.x, aircraft2.y)
-#     return - d / c
-#
-#
-# def closest_approach(aircraft1, aircraft2):
-#
-#     t_closest = time_to_closest_approach(aircraft1, aircraft2) / FPS
-#
-#     # Aircraft 1
-#     psi_rad_1 = (aircraft1.psi / 360.0) * 2 * math.pi
-#     x1 = aircraft1.x + (aircraft1.v_air * math.cos(psi_rad_1) * t_closest)
-#     y1 = aircraft1.y + (aircraft1.v_air * math.sin(psi_rad_1) * t_closest)
-#
-#     # Aircraft 2
-#     psi_rad_2 = (aircraft2.psi / 360.0) * 2 * math.pi
-#     x2 = aircraft2.x + (aircraft2.v_air * math.cos(psi_rad_2) * t_closest)
-#     y2 = aircraft2.y + (aircraft2.v_air * math.sin(psi_rad_2) * t_closest)
-#
-#     return distance(x1, y1, x2, y2)
 
 
 # def distance_reward(d, exp=0.5):
@@ -188,13 +192,14 @@ class ACAS2DGame:
         for t in range(self.num_traffic):
 
             if t == 0:
+                starts_down = random.randint(0, 1)
                 # Random position in the mid part of the airspace
                 t_x = WIDTH - COLLISION_RADIUS
-                t_y = COLLISION_RADIUS
+                t_y = COLLISION_RADIUS + (starts_down * (HEIGHT - (2 * COLLISION_RADIUS)))
                 # Random v_air
                 t_speed = random.uniform(AIRSPEED_FACTOR_MIN, AIRSPEED_FACTOR_MAX) * AIRSPEED
                 # Random psi: 0..360 degrees
-                t_heading = random.uniform(110, 160)
+                t_heading = random.uniform(110, 160) + (starts_down * 90)
                 self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
             else:
                 # Random position in the mid part of the airspace
@@ -385,6 +390,9 @@ class ACAS2DGame:
         v_closing = closing_speed(self.player, self.traffic[0])
         cs = self.font.render("Closing Speed: {}".format(round(v_closing, 1)), True, BLACK_RGB)
         self.screen.blit(cs, (20, HEIGHT - 60))
+        d_closest = distance_closest_approach(self.player, self.traffic[0])
+        dca = self.font.render("Closest approach: {}".format(round(d_closest, 1)), True, BLACK_RGB)
+        self.screen.blit(dca, (20, HEIGHT - 80))
 
         # Display episode and 'time' (number of game loop iterations)
         st = self.font.render("Steps: {}".format(self.steps), True, BLACK_RGB)
