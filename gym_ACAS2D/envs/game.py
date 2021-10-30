@@ -91,37 +91,37 @@ def closing_speed(aircraft1, aircraft2):
 #         raise ValueError("Distance to goal cannot be negative.")
 
 
-# def closest_approach_reward(d_sep, d_cpa):
-#     if (0 <= d_sep <= SAFE_RADIUS) and (0 <= d_cpa <= SAFE_RADIUS):
-#         return (d_cpa / SAFE_RADIUS) ** 2
+# def separation_reward(s, c, exp=2):
+#     if s >= 0:
+#         return min(1, (s / (2 * SAFE_RADIUS)) ** exp)
 #     else:
-#         return 1
+#         raise ValueError("Separation cannot be negative.")
 
 
 def delta_heading(psi, phi):
     return min(abs(psi-phi), abs(psi-phi-360))
 
 
-def heading_reward(psi, phi):
+def heading_reward(psi, phi, exp=4):
     if (0 <= psi <= 360) and (0 <= phi <= 360):
-        return (1 - delta_heading(psi, phi)/180) ** 4
+        return (1 - delta_heading(psi, phi)/180) ** exp
     else:
         raise ValueError("Heading and relative angle must be in [0, 360].")
 
 
-def closing_speed_reward(c, exp=2):
-    if c > 0:
+def closest_approach_reward(v_closing, d_cpa, exp=2):
+    if v_closing > 0:
         return 1
     else:
-        c_max = 2 * (AIRSPEED / FPS)
-        return max(0, 1 - (abs(c)/c_max) ** exp)
+        return min(1, (d_cpa/SAFE_DISTANCE) ** exp)
 
 
-# def separation_reward(s, c, exp=2):
-#     if s >= 0:
-#         return min(1, (s / (2 * SAFE_RADIUS)) ** exp)
+# def closing_speed_reward(c, exp=2):
+#     if c > 0:
+#         return 1
 #     else:
-#         raise ValueError("Separation cannot be negative.")
+#         c_max = 2 * (AIRSPEED / FPS)
+#         return max(0, 1 - (abs(c)/c_max) ** exp)
 
 
 class ACAS2DGame:
@@ -183,6 +183,10 @@ class ACAS2DGame:
         self.d_goal_max = self.distance_to_goal() + (AIRSPEED / FPS) * MAX_STEPS
         # Maximum possible separation
         self.d_separation_max = np.sqrt(WIDTH**2 + HEIGHT**2) + (2 * (AIRSPEED / FPS) * MAX_STEPS)
+        # Maximum distance of closest approach
+        self.d_cpa_max = np.sqrt(WIDTH**2 + HEIGHT**2)
+        # Maximum (absolute) closing speed
+        self.v_closing_max = 2 * ((AIRSPEED_FACTOR_MAX * AIRSPEED) / FPS)
 
         # Number of traffic aircraft
         self.num_traffic = random.randint(MIN_TRAFFIC, MAX_TRAFFIC)
@@ -242,8 +246,8 @@ class ACAS2DGame:
         self.steps += 1
 
         obs = [self.steps / MAX_STEPS,
-               self.player.x / WIDTH,
-               self.player.y / HEIGHT,
+               # self.player.x / WIDTH,
+               # self.player.y / HEIGHT,
                self.player.psi / 360,
                self.distance_to_goal() / self.d_goal_max,
                self.heading_to_goal() / 360]
@@ -252,7 +256,9 @@ class ACAS2DGame:
             x1, y1 = self.player.x, self.player.y
             x2, y2 = t.x, t.y
             obs.append(distance(x1, y1, x2, y2) / self.d_separation_max)
-            obs.append(relative_angle(x1, y1, x2, y2) / 360)
+            obs.append(distance_closest_approach(self.player, t) / self.d_cpa_max)
+            obs.append(closing_speed(self.player, t) / self.v_closing_max)
+            # obs.append(relative_angle(x1, y1, x2, y2) / 360)
 
         # Padding
         obs += [0] * (2 * (MAX_TRAFFIC - self.num_traffic))
@@ -280,12 +286,13 @@ class ACAS2DGame:
 
         # reward = 0
 
-        # d_separation = self.minimum_separation()
-        v_closing = closing_speed(self.player, self.traffic[0])
         psi = self.player.psi
         phi = relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
 
-        r_step = heading_reward(psi, phi) * closing_speed_reward(v_closing)
+        v_closing = closing_speed(self.player, self.traffic[0])
+        d_cpa = distance_closest_approach(self.player, self.traffic[0])
+
+        r_step = heading_reward(psi, phi) * closest_approach_reward(v_closing, d_cpa)
 
         # Time discount factor
         tdf = 1 - (self.steps / MAX_STEPS)
@@ -403,19 +410,16 @@ class ACAS2DGame:
         # Display reward
         r_tot = self.font.render("Total reward: {}".format(round(self.total_reward, 1)), True, BLACK_RGB)
         self.screen.blit(r_tot, (WIDTH - 300, HEIGHT - 20))
-        # d_goal = self.distance_to_goal()
-        # r_dis = self.font.render("Step distance reward: {}".format(round(distance_reward(d_goal), 3)),
-        #                          True, BLACK_RGB)
-        # self.screen.blit(r_dis, (WIDTH - 200, HEIGHT - 60))
         psi = self.player.psi
         phi = relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
         r_psi = self.font.render("Step heading reward: {}".format(round(heading_reward(psi, phi), 3)),
                                  True, BLACK_RGB)
         self.screen.blit(r_psi, (WIDTH - 300, HEIGHT - 60))
         v_closing = closing_speed(self.player, self.traffic[0])
-        r_clo = self.font.render("Step closing speed reward: {}".format(round(closing_speed_reward(v_closing), 3)),
+        dist_cpa = distance_closest_approach(self.player, self.traffic[0])
+        r_cpa = self.font.render("Step closest approach reward: {}".format(round(closest_approach_reward(v_closing, dist_cpa), 3)),
                                  True, BLACK_RGB)
-        self.screen.blit(r_clo, (WIDTH - 300, HEIGHT - 40))
+        self.screen.blit(r_cpa, (WIDTH - 300, HEIGHT - 40))
 
         # Update the game screen
         pygame.display.update()
