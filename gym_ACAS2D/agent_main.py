@@ -17,12 +17,10 @@ random.seed(RANDOM_SEED)
 def simulate(pause=False):
 
     # Folders and file names
-    model_save_path = "./models/best_model_{}".format(int(TOTAL_STEPS))
-    model_file = model_save_path + "/best_model.zip"
-    log_path = model_save_path + "/results"
-
-    # We evaluate the model 100 times during training
-    eval_frequency = max(1000, TOTAL_STEPS / 100)
+    best_model_save_path = "./models/best_model_{}".format(int(TOTAL_STEPS))
+    best_model_file = best_model_save_path + "/best_model.zip"
+    best_model_log_path = best_model_save_path + "/results"
+    final_model_file = "./models/ACAS2D_PPO_{}.zip".format(int(TOTAL_STEPS))
 
     # Initialise the  environment
     environment = gym.make("ACAS2D-v0")
@@ -32,8 +30,8 @@ def simulate(pause=False):
 
     # Train agent or load saved model
     try:
-        model = PPO.load(model_file)
-        print("Model loaded from file: {}".format(model_file))
+        model = PPO.load(best_model_file)
+        print("Model loaded from file: {}".format(best_model_file))
 
     except FileNotFoundError:
         t_start = time.time()
@@ -42,9 +40,10 @@ def simulate(pause=False):
         eval_env = gym.make("ACAS2D-v0")
         eval_env = Monitor(eval_env)
         eval_callback = EvalCallback(eval_env,
-                                     best_model_save_path=model_save_path,
-                                     log_path=log_path,
-                                     eval_freq=eval_frequency)
+                                     best_model_save_path=best_model_save_path,
+                                     log_path=best_model_log_path,
+                                     eval_freq=EVAL_STEPS,
+                                     n_eval_episodes=10)
         # Create the callback list
         callback = CallbackList([eval_callback])
 
@@ -59,12 +58,12 @@ def simulate(pause=False):
                     tb_log_name="run_{}".format(TOTAL_STEPS))
 
         # Save final trained model
-        model.save(model_file)
+        model.save(final_model_file)
         print(f"Model training complete in {(time.time() - t_start) / 60.0} minutes.")
 
         # Load best model saved during training
-        model = PPO.load(model_file)
-        print("Model loaded from file: {}".format(model_file))
+        model = PPO.load(best_model_file)
+        print("Model loaded from file: {}".format(best_model_file))
 
     # Test best trained model for a number of episodes
     for episode in range(1, EPISODES + 1):

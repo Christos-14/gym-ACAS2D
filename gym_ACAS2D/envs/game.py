@@ -116,6 +116,11 @@ def closest_approach_reward(v_closing, d_cpa, exp=2):
         return min(1, (d_cpa/SAFE_DISTANCE) ** exp)
 
 
+def plan_deviation_reward(d_vert, exp=2):
+    d_vert_max = (AIRSPEED / FPS) * MAX_STEPS
+    return max(0, (1-(abs(d_vert)) / d_vert_max) ** exp)
+
+
 # def closing_speed_reward(c, exp=2):
 #     if c > 0:
 #         return 1
@@ -175,7 +180,7 @@ class ACAS2DGame:
         self.player = PlayerAircraft(x=player_x, y=player_y, v_air=player_speed, psi=player_psi)
         # Set player's initial heading towards the general direction of the goal.
         self.player.psi = (relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y) +
-                           random.uniform(-INITIAL_HEADING_LIM, INITIAL_HEADING_LIM)) % 360
+                           random.uniform(-PLAYER_INITIAL_HEADING_LIM, PLAYER_INITIAL_HEADING_LIM)) % 360
 
         # Initial distance to goal
         self.d_goal_initial = self.distance_to_goal()
@@ -203,8 +208,9 @@ class ACAS2DGame:
                 # Random v_air
                 t_speed = random.uniform(AIRSPEED_FACTOR_MIN, AIRSPEED_FACTOR_MAX) * AIRSPEED
                 # Random psi: 0..360 degrees
-                t_heading = random.uniform(110, 160) + (starts_down * 90)
-                self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
+                t_heading = (135 + (starts_down * 90) +
+                             random.uniform(-TRAFFIC_INITIAL_HEADING_LIM, TRAFFIC_INITIAL_HEADING_LIM) ) % 360
+
             else:
                 # Random position in the mid part of the airspace
                 t_x = random.uniform(0, WIDTH - AIRCRAFT_SIZE)
@@ -213,7 +219,8 @@ class ACAS2DGame:
                 t_speed = random.uniform(AIRSPEED_FACTOR_MIN, AIRSPEED_FACTOR_MAX) * AIRSPEED
                 # Random psi: 0..360 degrees
                 t_heading = random.uniform(0, 360)
-                self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
+
+            self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
 
     def minimum_separation(self):
         if self.num_traffic == 0:
@@ -227,6 +234,12 @@ class ACAS2DGame:
     def heading_to_goal(self):
         # The psi that would lead the player straight to the goal
         return relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
+
+    def plan_deviation(self):
+        d_goal = self.distance_to_goal()
+        h_goal = self.heading_to_goal()
+        h_goal_rad = (h_goal / 360.0) * 2 * math.pi
+        return d_goal * np.sin(h_goal_rad)
 
     def check_timeout(self):
         return self.steps == MAX_STEPS
@@ -292,22 +305,13 @@ class ACAS2DGame:
         v_closing = closing_speed(self.player, self.traffic[0])
         d_cpa = distance_closest_approach(self.player, self.traffic[0])
 
-        r_step = heading_reward(psi, phi) * closest_approach_reward(v_closing, d_cpa)
+        d_vert = self.plan_deviation()
+
+        r_step = heading_reward(psi, phi) * closest_approach_reward(v_closing, d_cpa) * plan_deviation_reward(d_vert)
 
         # Time discount factor
         tdf = 1 - (self.steps / MAX_STEPS)
         reward = r_step * tdf
-
-        # # Time discounted distance reward
-        # d_goal = self.distance_to_goal()
-        # d_init = self.d_goal_initial
-        # r_dist = np.tanh((d_init - d_goal) / self.d_goal_max)
-        # # x_max = (AIRSPEED / FPS) * MAX_STEPS
-        # # r_dist = np.tanh(self.player.x / x_max)
-        # reward += r_dist * tdf
-        # # Penalise running away
-        # if self.check_runaway():
-        #     reward += REWARD_RUNAWAY_FACTOR * d_goal
 
         # # Penalise timeouts.
         # if self.check_timeout():
@@ -346,7 +350,7 @@ class ACAS2DGame:
             self.outcome = 1
             done = True
         if done:
-            print("is_done() 	>>> Outcome: {} Total Reward: {}".
+            print("is_done() 	>>> Outcome: {:<10} - Total Reward: {}".
                   format(OUTCOME_NAMES[self.outcome].upper(), self.total_reward))
         return done
 
@@ -401,6 +405,10 @@ class ACAS2DGame:
         d_closest = distance_closest_approach(self.player, self.traffic[0])
         dca = self.font.render("Closest approach: {}".format(round(d_closest, 1)), True, BLACK_RGB)
         self.screen.blit(dca, (20, HEIGHT - 80))
+        vd = self.font.render("Plan deviation: {}".format(round(self.plan_deviation(), 1)), True, BLACK_RGB)
+        self.screen.blit(vd, (20, HEIGHT - 100))
+        hg = self.font.render("Heading to goal: {}".format(round(self.heading_to_goal(), 1)), True, BLACK_RGB)
+        self.screen.blit(hg, (20, HEIGHT - 120))
 
         # Display episode and 'time' (number of game loop iterations)
         st = self.font.render("Steps: {}".format(self.steps), True, BLACK_RGB)
@@ -415,12 +423,16 @@ class ACAS2DGame:
         phi = relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
         r_psi = self.font.render("Step heading reward: {}".format(round(heading_reward(psi, phi), 3)),
                                  True, BLACK_RGB)
-        self.screen.blit(r_psi, (WIDTH - 300, HEIGHT - 60))
+        self.screen.blit(r_psi, (WIDTH - 300, HEIGHT - 40))
         v_closing = closing_speed(self.player, self.traffic[0])
         dist_cpa = distance_closest_approach(self.player, self.traffic[0])
         r_cpa = self.font.render("Step closest approach reward: {}".format(round(closest_approach_reward(v_closing, dist_cpa), 3)),
                                  True, BLACK_RGB)
-        self.screen.blit(r_cpa, (WIDTH - 300, HEIGHT - 40))
+        self.screen.blit(r_cpa, (WIDTH - 300, HEIGHT - 60))
+        d_vert = self.plan_deviation()
+        r_dv = self.font.render("Step plan deviation reward: {}".format(round(plan_deviation_reward(d_vert), 3)),
+                                True, BLACK_RGB)
+        self.screen.blit(r_dv, (WIDTH - 300, HEIGHT - 80))
 
         # Update the game screen
         pygame.display.update()
