@@ -39,6 +39,7 @@ def simulate(pause=False):
         # Separate evaluation env
         eval_env = gym.make("ACAS2D-v0")
         eval_env = Monitor(eval_env)
+
         eval_callback = EvalCallback(eval_env,
                                      best_model_save_path=best_model_save_path,
                                      log_path=best_model_log_path,

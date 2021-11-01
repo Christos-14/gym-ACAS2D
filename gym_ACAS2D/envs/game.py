@@ -47,13 +47,12 @@ def distance_closest_approach(aircraft1, aircraft2):
                            aircraft2.x, aircraft2.y)
     a_rel_rad = (a_rel / 360.0) * 2 * math.pi
     v12x, v12y = relative_speed(aircraft1, aircraft2)
-    h_rel_rad = np.arctan(v12y/v12x)
-    dca = d * np.sin(a_rel_rad-h_rel_rad)
+    h_rel_rad = np.arctan(v12y / v12x)
+    dca = d * np.sin(a_rel_rad - h_rel_rad)
     return dca
 
 
 def closing_speed(aircraft1, aircraft2):
-
     # Delta t
     dt = 1 / FPS
 
@@ -99,12 +98,12 @@ def closing_speed(aircraft1, aircraft2):
 
 
 def delta_heading(psi, phi):
-    return min(abs(psi-phi), abs(psi-phi-360))
+    return min(abs(psi - phi), abs(psi - phi - 360))
 
 
 def heading_reward(psi, phi, exp=4):
     if (0 <= psi <= 360) and (0 <= phi <= 360):
-        return (1 - delta_heading(psi, phi)/180) ** exp
+        return (1 - delta_heading(psi, phi) / 180) ** exp
     else:
         raise ValueError("Heading and relative angle must be in [0, 360].")
 
@@ -113,12 +112,15 @@ def closest_approach_reward(v_closing, d_cpa, exp=2):
     if v_closing > 0:
         return 1
     else:
-        return min(1, (d_cpa/SAFE_DISTANCE) ** exp)
+        return min(1, (d_cpa / SAFE_DISTANCE) ** exp)
 
 
-def plan_deviation_reward(d_vert, exp=2):
-    d_vert_max = (AIRSPEED / FPS) * MAX_STEPS
-    return max(0, (1-(abs(d_vert)) / d_vert_max) ** exp)
+def plan_deviation_reward(v_closing, d_vert, exp=2):
+    if v_closing > 0:
+        return 1
+    else:
+        d_vert_max = (AIRSPEED / FPS) * MAX_STEPS
+        return max(0, (1 - (abs(d_vert)) / d_vert_max) ** exp)
 
 
 # def closing_speed_reward(c, exp=2):
@@ -187,9 +189,9 @@ class ACAS2DGame:
         # Max possible distance from goal
         self.d_goal_max = self.distance_to_goal() + (AIRSPEED / FPS) * MAX_STEPS
         # Maximum possible separation
-        self.d_separation_max = np.sqrt(WIDTH**2 + HEIGHT**2) + (2 * (AIRSPEED / FPS) * MAX_STEPS)
+        self.d_separation_max = np.sqrt(WIDTH ** 2 + HEIGHT ** 2) + (2 * (AIRSPEED / FPS) * MAX_STEPS)
         # Maximum distance of closest approach
-        self.d_cpa_max = np.sqrt(WIDTH**2 + HEIGHT**2)
+        self.d_cpa_max = np.sqrt(WIDTH ** 2 + HEIGHT ** 2)
         # Maximum (absolute) closing speed
         self.v_closing_max = 2 * ((AIRSPEED_FACTOR_MAX * AIRSPEED) / FPS)
 
@@ -209,7 +211,7 @@ class ACAS2DGame:
                 t_speed = random.uniform(AIRSPEED_FACTOR_MIN, AIRSPEED_FACTOR_MAX) * AIRSPEED
                 # Random psi: 0..360 degrees
                 t_heading = (135 + (starts_down * 90) +
-                             random.uniform(-TRAFFIC_INITIAL_HEADING_LIM, TRAFFIC_INITIAL_HEADING_LIM) ) % 360
+                             random.uniform(-TRAFFIC_INITIAL_HEADING_LIM, TRAFFIC_INITIAL_HEADING_LIM)) % 360
 
             else:
                 # Random position in the mid part of the airspace
@@ -307,7 +309,9 @@ class ACAS2DGame:
 
         d_vert = self.plan_deviation()
 
-        r_step = heading_reward(psi, phi) * closest_approach_reward(v_closing, d_cpa) * plan_deviation_reward(d_vert)
+        r_step = heading_reward(psi, phi) * \
+                 closest_approach_reward(v_closing, d_cpa) * \
+                 plan_deviation_reward(v_closing, d_vert)
 
         # Time discount factor
         tdf = 1 - (self.steps / MAX_STEPS)
@@ -421,16 +425,19 @@ class ACAS2DGame:
         self.screen.blit(r_tot, (WIDTH - 300, HEIGHT - 20))
         psi = self.player.psi
         phi = relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
-        r_psi = self.font.render("Step heading reward: {}".format(round(heading_reward(psi, phi), 3)),
+        r_psi = self.font.render("Step heading reward: {}".
+                                 format(round(heading_reward(psi, phi), 3)),
                                  True, BLACK_RGB)
         self.screen.blit(r_psi, (WIDTH - 300, HEIGHT - 40))
         v_closing = closing_speed(self.player, self.traffic[0])
         dist_cpa = distance_closest_approach(self.player, self.traffic[0])
-        r_cpa = self.font.render("Step closest approach reward: {}".format(round(closest_approach_reward(v_closing, dist_cpa), 3)),
+        r_cpa = self.font.render("Step closest approach reward: {}".
+                                 format(round(closest_approach_reward(v_closing, dist_cpa), 3)),
                                  True, BLACK_RGB)
         self.screen.blit(r_cpa, (WIDTH - 300, HEIGHT - 60))
         d_vert = self.plan_deviation()
-        r_dv = self.font.render("Step plan deviation reward: {}".format(round(plan_deviation_reward(d_vert), 3)),
+        r_dv = self.font.render("Step plan deviation reward: {}".
+                                format(round(plan_deviation_reward(v_closing, d_vert), 3)),
                                 True, BLACK_RGB)
         self.screen.blit(r_dv, (WIDTH - 300, HEIGHT - 80))
 
