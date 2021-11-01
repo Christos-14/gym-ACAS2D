@@ -150,6 +150,8 @@ class ACAS2DGame:
         self.steps = 0
         # Total reward
         self.total_reward = 0
+        # Distance covered by the player
+        self.d_path = 0
 
         # Game status flags
         self.manual = manual  # Is the player controlled manually?
@@ -288,8 +290,11 @@ class ACAS2DGame:
         # Update player a_lat based on action taken
         # Action is scaled to [-1, 1] ; scale to original [-ACC_LAT_LIMIT, ACC_LAT_LIMIT]
         self.player.a_lat = action[0] * ACC_LAT_LIMIT
+        # Calculate distance covered
+        x_old, y_old = self.player.x, self.player.y
         # Update player position based on that v_air and psi
         self.player.update_state()
+        self.d_path += distance(x_old, y_old, self.player.x, self.player.y)
         # If the game is still running, update the traffic aircraft positions.
         for t in self.traffic:
             if self.running:
@@ -400,19 +405,22 @@ class ACAS2DGame:
         d_goal = self.distance_to_goal()
         dg = self.font.render("Distance to goal: {}".format(round(d_goal, 1)), True, BLACK_RGB)
         self.screen.blit(dg, (20, HEIGHT - 20))
+        d_path = self.d_path
+        dp = self.font.render("Distance covered: {}".format(round(d_path, 1)), True, BLACK_RGB)
+        self.screen.blit(dp, (20, HEIGHT - 40))
         min_separation = self.minimum_separation()
         ms = self.font.render("Min. Separation: {}".format(round(min_separation, 1)), True, BLACK_RGB)
-        self.screen.blit(ms, (20, HEIGHT - 40))
+        self.screen.blit(ms, (20, HEIGHT - 60))
         v_closing = closing_speed(self.player, self.traffic[0])
         cs = self.font.render("Closing Speed: {}".format(round(v_closing, 1)), True, BLACK_RGB)
-        self.screen.blit(cs, (20, HEIGHT - 60))
+        self.screen.blit(cs, (20, HEIGHT - 80))
         d_closest = distance_closest_approach(self.player, self.traffic[0])
         dca = self.font.render("Closest approach: {}".format(round(d_closest, 1)), True, BLACK_RGB)
-        self.screen.blit(dca, (20, HEIGHT - 80))
+        self.screen.blit(dca, (20, HEIGHT - 100))
         vd = self.font.render("Plan deviation: {}".format(round(self.plan_deviation(), 1)), True, BLACK_RGB)
-        self.screen.blit(vd, (20, HEIGHT - 100))
+        self.screen.blit(vd, (20, HEIGHT - 120))
         hg = self.font.render("Heading to goal: {}".format(round(self.heading_to_goal(), 1)), True, BLACK_RGB)
-        self.screen.blit(hg, (20, HEIGHT - 120))
+        self.screen.blit(hg, (20, HEIGHT - 140))
 
         # Display episode and 'time' (number of game loop iterations)
         st = self.font.render("Steps: {}".format(self.steps), True, BLACK_RGB)
