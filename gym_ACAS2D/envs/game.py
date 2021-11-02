@@ -82,21 +82,6 @@ def closing_speed(aircraft1, aircraft2):
     return c
 
 
-# def distance_reward(d, exp=0.5):
-#     if d >= 0:
-#         d_goal_init = (WIDTH - GOAL_RADIUS) - (2 * AIRCRAFT_SIZE)
-#         return max(0, 1 - (d / d_goal_init) ** exp)
-#     else:
-#         raise ValueError("Distance to goal cannot be negative.")
-
-
-# def separation_reward(s, c, exp=2):
-#     if s >= 0:
-#         return min(1, (s / (2 * SAFE_RADIUS)) ** exp)
-#     else:
-#         raise ValueError("Separation cannot be negative.")
-
-
 def delta_heading(psi, phi):
     return min(abs(psi - phi), abs(psi - phi - 360))
 
@@ -115,20 +100,12 @@ def closest_approach_reward(v_closing, d_cpa, exp=2):
         return min(1, (d_cpa / SAFE_DISTANCE) ** exp)
 
 
-def plan_deviation_reward(v_closing, d_vert, exp=2):
-    if v_closing > 0:
-        return 1
+def path_length_reward(d_path, exp=0.5):
+    if d_path >= 0:
+        d_path_max = 2 * (WIDTH + HEIGHT)
+        return max(0, 1 - ((d_path / d_path_max) ** exp))
     else:
-        d_vert_max = (AIRSPEED / FPS) * MAX_STEPS
-        return max(0, (1 - (abs(d_vert)) / d_vert_max) ** exp)
-
-
-# def closing_speed_reward(c, exp=2):
-#     if c > 0:
-#         return 1
-#     else:
-#         c_max = 2 * (AIRSPEED / FPS)
-#         return max(0, 1 - (abs(c)/c_max) ** exp)
+        raise ValueError("Distance covered cannot be negative.")
 
 
 class ACAS2DGame:
@@ -171,9 +148,6 @@ class ACAS2DGame:
         # Set the goal position at random, in the top part of the airspace.
         self.goal_x = WIDTH - GOAL_RADIUS
         self.goal_y = HEIGHT / 2
-
-        # # Maximum allowed distance from goal
-        # self.max_distance = np.sqrt(WIDTH ** 2 + HEIGHT ** 2)
 
         # Set the player starting position at random, in the bottom part of the airspace
         # Set the player starting psi and v_air
@@ -239,12 +213,6 @@ class ACAS2DGame:
         # The psi that would lead the player straight to the goal
         return relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
 
-    def plan_deviation(self):
-        d_goal = self.distance_to_goal()
-        h_goal = self.heading_to_goal()
-        h_goal_rad = (h_goal / 360.0) * 2 * math.pi
-        return d_goal * np.sin(h_goal_rad)
-
     def check_timeout(self):
         return self.steps == MAX_STEPS
 
@@ -308,15 +276,13 @@ class ACAS2DGame:
 
         psi = self.player.psi
         phi = relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
-
         v_closing = closing_speed(self.player, self.traffic[0])
         d_cpa = distance_closest_approach(self.player, self.traffic[0])
-
-        d_vert = self.plan_deviation()
+        d_path = self.d_path
 
         r_step = heading_reward(psi, phi) * \
                  closest_approach_reward(v_closing, d_cpa) * \
-                 plan_deviation_reward(v_closing, d_vert)
+                 path_length_reward(d_path)
 
         # Time discount factor
         tdf = 1 - (self.steps / MAX_STEPS)
@@ -417,10 +383,8 @@ class ACAS2DGame:
         d_closest = distance_closest_approach(self.player, self.traffic[0])
         dca = self.font.render("Closest approach: {}".format(round(d_closest, 1)), True, BLACK_RGB)
         self.screen.blit(dca, (20, HEIGHT - 100))
-        vd = self.font.render("Plan deviation: {}".format(round(self.plan_deviation(), 1)), True, BLACK_RGB)
-        self.screen.blit(vd, (20, HEIGHT - 120))
         hg = self.font.render("Heading to goal: {}".format(round(self.heading_to_goal(), 1)), True, BLACK_RGB)
-        self.screen.blit(hg, (20, HEIGHT - 140))
+        self.screen.blit(hg, (20, HEIGHT - 120))
 
         # Display episode and 'time' (number of game loop iterations)
         st = self.font.render("Steps: {}".format(self.steps), True, BLACK_RGB)
@@ -443,9 +407,8 @@ class ACAS2DGame:
                                  format(round(closest_approach_reward(v_closing, dist_cpa), 3)),
                                  True, BLACK_RGB)
         self.screen.blit(r_cpa, (WIDTH - 300, HEIGHT - 60))
-        d_vert = self.plan_deviation()
-        r_dv = self.font.render("Step plan deviation reward: {}".
-                                format(round(plan_deviation_reward(v_closing, d_vert), 3)),
+        r_dv = self.font.render("Step path length reward: {}".
+                                format(round(path_length_reward(d_path), 3)),
                                 True, BLACK_RGB)
         self.screen.blit(r_dv, (WIDTH - 300, HEIGHT - 80))
 
