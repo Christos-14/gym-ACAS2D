@@ -93,17 +93,17 @@ def heading_reward(psi, phi, exp=4):
         raise ValueError("Heading and relative angle must be in [0, 360].")
 
 
-def closest_approach_reward(v_closing, d_cpa, exp=2):
+def closest_approach_reward(v_closing, d_cpa, exp=4):
     if v_closing > 0:
         return 1
     else:
         return min(1, (d_cpa / SAFE_DISTANCE) ** exp)
 
 
-def path_length_reward(d_path, exp=0.5):
+def path_length_reward(d_path, exp=4):
     if d_path >= 0:
         d_path_max = 2 * (WIDTH + HEIGHT)
-        return max(0, 1 - ((d_path / d_path_max) ** exp))
+        return max(0, (1 - d_path / d_path_max) ** exp)
     else:
         raise ValueError("Distance covered cannot be negative.")
 

@@ -16,12 +16,6 @@ random.seed(RANDOM_SEED)
 
 def simulate(pause=False):
 
-    # Folders and file names
-    best_model_save_path = "./models/best_model_{}".format(int(TOTAL_STEPS))
-    best_model_file = best_model_save_path + "/best_model.zip"
-    best_model_log_path = best_model_save_path + "/results"
-    final_model_file = "./models/ACAS2D_PPO_{}.zip".format(int(TOTAL_STEPS))
-
     # Initialise the  environment
     environment = gym.make("ACAS2D-v0")
 
@@ -30,10 +24,13 @@ def simulate(pause=False):
 
     # Train agent or load saved model
     try:
+        # best_model_save_path = "./models/best_model_{}_2".format(int(TOTAL_STEPS))
+        # best_model_file = best_model_save_path + "/best_model.zip"
         model = PPO.load(best_model_file)
         print("Model loaded from file: {}".format(best_model_file))
 
     except FileNotFoundError:
+
         t_start = time.time()
 
         # Separate evaluation env
@@ -102,10 +99,21 @@ def simulate(pause=False):
 
 
 if __name__ == "__main__":
-    log_to_file = False
+
+    version = 3
+
+    log_file = "./models/logs/ACAS2D_PPO_{}_{}.txt".format(int(TOTAL_STEPS), version)
+    log_to_file = True
+
+    # Folders and file names
+    best_model_save_path = "./models/best_model_{}_{}".format(int(TOTAL_STEPS), version)
+    best_model_file = best_model_save_path + "/best_model.zip"
+    best_model_log_path = best_model_save_path + "/results"
+    final_model_file = "./models/ACAS2D_PPO_{}_{}.zip".format(int(TOTAL_STEPS), version)
+
     if log_to_file:
         orig_stdout = sys.stdout
-        f = open('agent_log.txt', 'w')
+        f = open(log_file, 'w')
         sys.stdout = f
     try:
         simulate(pause=False)
