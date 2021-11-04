@@ -339,9 +339,9 @@ class ACAS2DGame:
             self.running = False
             self.outcome = 1
             done = True
-        if done:
-            print("is_done() 	>>> Outcome: {:<10} - Total Reward: {}".
-                  format(OUTCOME_NAMES[self.outcome].upper(), self.total_reward))
+        # if done:
+        #     print("is_done() 	>>> Outcome: {:<10} - Total Reward: {}".
+        #           format(OUTCOME_NAMES[self.outcome].upper(), self.total_reward))
         return done
 
     def view(self):
@@ -436,7 +436,6 @@ class ACAS2DGame:
                                                                              d_goal), 3)),
                                   True, BLACK_RGB)
         self.screen.blit(r_step, (WIDTH - 300, HEIGHT - 40))
-
 
         # Update the game screen
         pygame.display.update()

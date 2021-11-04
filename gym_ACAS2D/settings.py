@@ -2,7 +2,8 @@ from scipy.constants import g
 
 # GAME CONSTANTS
 OUTCOME_NAMES = {1: 'Goal', 2: 'Collision', 3: 'Timeout'}
-EPISODES = 10
+TEST_EPISODES = 1000
+EVAL_EPISODES = 10
 MAX_STEPS = 1200
 N_STEPS = 2048
 TOTAL_STEPS = N_STEPS * 512  # 1,048,576

@@ -13,7 +13,7 @@ random.seed(RANDOM_SEED)
 
 def simulate(pause=False):
 
-    for episode in range(1, EPISODES+1):
+    for episode in range(1, TEST_EPISODES + 1):
         # Initialise the  environment
         environment = gym.make("ACAS2D-v0")
         # At the first episode, check the environment
@@ -50,4 +50,7 @@ def simulate(pause=False):
 
 
 if __name__ == "__main__":
-    simulate(pause=False)
+    try:
+        simulate(pause=False)
+    except KeyboardInterrupt:
+        pass
