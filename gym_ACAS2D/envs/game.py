@@ -100,12 +100,28 @@ def closest_approach_reward(v_closing, d_cpa, exp=4):
         return min(1, (d_cpa / SAFE_DISTANCE) ** exp)
 
 
-def path_length_reward(d_path, exp=4):
-    if d_path >= 0:
-        d_path_max = 2 * (WIDTH + HEIGHT)
-        return max(0, (1 - d_path / d_path_max) ** exp)
+# def path_length_reward(d_path, exp=4):
+#     if d_path >= 0:
+#         d_path_max = 2 * (WIDTH + HEIGHT)
+#         return max(0, (1 - d_path / d_path_max) ** exp)
+#     else:
+#         raise ValueError("Distance covered cannot be negative.")
+
+
+def distance_reward(d_goal, exp=4):
+    if d_goal >= 0:
+        d_goal_init = (WIDTH - GOAL_RADIUS) - (2 * AIRCRAFT_SIZE)
+        d_goal_max = d_goal_init + (AIRSPEED / FPS) * MAX_STEPS
+        return min(1, (1 - d_goal / d_goal_max) ** exp)
     else:
-        raise ValueError("Distance covered cannot be negative.")
+        raise ValueError("Distance to goal cannot be negative.")
+
+
+def step_reward(v_closing, psi, phi, d_cpa, d_goal):
+    if v_closing <= 0:
+        return heading_reward(psi, phi) * closest_approach_reward(v_closing, d_cpa)
+    else:
+        return heading_reward(psi, phi) * distance_reward(d_goal)
 
 
 class ACAS2DGame:
@@ -278,11 +294,10 @@ class ACAS2DGame:
         phi = relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
         v_closing = closing_speed(self.player, self.traffic[0])
         d_cpa = distance_closest_approach(self.player, self.traffic[0])
-        d_path = self.d_path
+        d_goal = self.distance_to_goal()
+        # d_path = self.d_path
 
-        r_step = heading_reward(psi, phi) * \
-                 closest_approach_reward(v_closing, d_cpa) * \
-                 path_length_reward(d_path)
+        r_step = step_reward(v_closing, psi, phi, d_cpa, d_goal)
 
         # Time discount factor
         tdf = 1 - (self.steps / MAX_STEPS)
@@ -371,20 +386,22 @@ class ACAS2DGame:
         d_goal = self.distance_to_goal()
         dg = self.font.render("Distance to goal: {}".format(round(d_goal, 1)), True, BLACK_RGB)
         self.screen.blit(dg, (20, HEIGHT - 20))
-        d_path = self.d_path
-        dp = self.font.render("Distance covered: {}".format(round(d_path, 1)), True, BLACK_RGB)
-        self.screen.blit(dp, (20, HEIGHT - 40))
         min_separation = self.minimum_separation()
         ms = self.font.render("Min. Separation: {}".format(round(min_separation, 1)), True, BLACK_RGB)
-        self.screen.blit(ms, (20, HEIGHT - 60))
+        self.screen.blit(ms, (20, HEIGHT - 40))
         v_closing = closing_speed(self.player, self.traffic[0])
         cs = self.font.render("Closing Speed: {}".format(round(v_closing, 1)), True, BLACK_RGB)
-        self.screen.blit(cs, (20, HEIGHT - 80))
+        self.screen.blit(cs, (20, HEIGHT - 60))
         d_closest = distance_closest_approach(self.player, self.traffic[0])
         dca = self.font.render("Closest approach: {}".format(round(d_closest, 1)), True, BLACK_RGB)
-        self.screen.blit(dca, (20, HEIGHT - 100))
-        hg = self.font.render("Heading to goal: {}".format(round(self.heading_to_goal(), 1)), True, BLACK_RGB)
-        self.screen.blit(hg, (20, HEIGHT - 120))
+        self.screen.blit(dca, (20, HEIGHT - 80))
+        hg = self.font.render("Delta heading : {}".format(round(delta_heading(self.player.psi,
+                                                                              self.heading_to_goal()), 1)),
+                              True, BLACK_RGB)
+        self.screen.blit(hg, (20, HEIGHT - 100))
+        # d_path = self.d_path
+        # dp = self.font.render("Distance covered: {}".format(round(d_path, 1)), True, BLACK_RGB)
+        # self.screen.blit(dp, (20, HEIGHT - 40))
 
         # Display episode and 'time' (number of game loop iterations)
         st = self.font.render("Steps: {}".format(self.steps), True, BLACK_RGB)
@@ -400,17 +417,26 @@ class ACAS2DGame:
         r_psi = self.font.render("Step heading reward: {}".
                                  format(round(heading_reward(psi, phi), 3)),
                                  True, BLACK_RGB)
-        self.screen.blit(r_psi, (WIDTH - 300, HEIGHT - 40))
+        self.screen.blit(r_psi, (WIDTH - 300, HEIGHT - 100))
         v_closing = closing_speed(self.player, self.traffic[0])
-        dist_cpa = distance_closest_approach(self.player, self.traffic[0])
+        d_cpa = distance_closest_approach(self.player, self.traffic[0])
         r_cpa = self.font.render("Step closest approach reward: {}".
-                                 format(round(closest_approach_reward(v_closing, dist_cpa), 3)),
+                                 format(round(closest_approach_reward(v_closing, d_cpa), 3)),
                                  True, BLACK_RGB)
         self.screen.blit(r_cpa, (WIDTH - 300, HEIGHT - 60))
-        r_dv = self.font.render("Step path length reward: {}".
-                                format(round(path_length_reward(d_path), 3)),
+        d_goal = self.distance_to_goal()
+        r_d = self.font.render("Step distance reward: {}".
+                                format(round(distance_reward(d_goal), 3)),
                                 True, BLACK_RGB)
-        self.screen.blit(r_dv, (WIDTH - 300, HEIGHT - 80))
+        self.screen.blit(r_d, (WIDTH - 300, HEIGHT - 80))
+        r_step = self.font.render("Step reward: {}".format(round(step_reward(v_closing,
+                                                                             self.player.psi,
+                                                                             self.heading_to_goal(),
+                                                                             d_cpa,
+                                                                             d_goal), 3)),
+                                  True, BLACK_RGB)
+        self.screen.blit(r_step, (WIDTH - 300, HEIGHT - 40))
+
 
         # Update the game screen
         pygame.display.update()

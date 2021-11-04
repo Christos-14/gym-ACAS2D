@@ -24,7 +24,7 @@ def simulate(pause=False):
 
     # Train agent or load saved model
     try:
-        # best_model_save_path = "./models/best_model_{}_2".format(int(TOTAL_STEPS))
+        # best_model_save_path = "./models/best_model_{}_4".format(int(TOTAL_STEPS))
         # best_model_file = best_model_save_path + "/best_model.zip"
         model = PPO.load(best_model_file)
         print("Model loaded from file: {}".format(best_model_file))
@@ -100,7 +100,7 @@ def simulate(pause=False):
 
 if __name__ == "__main__":
 
-    version = 3
+    version = 4
 
     log_file = "./models/logs/ACAS2D_PPO_{}_{}.txt".format(int(TOTAL_STEPS), version)
     log_to_file = True
