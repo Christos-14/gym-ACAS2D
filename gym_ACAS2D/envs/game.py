@@ -145,6 +145,8 @@ class ACAS2DGame:
         self.total_reward = 0
         # Distance covered by the player
         self.d_path = 0
+        # Player's path
+        self.path = []
 
         # Game status flags
         self.manual = manual  # Is the player controlled manually?
@@ -176,6 +178,8 @@ class ACAS2DGame:
         self.player.psi = (relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y) +
                            random.uniform(-PLAYER_INITIAL_HEADING_LIM, PLAYER_INITIAL_HEADING_LIM)) % 360
 
+        # Initialise player's path record with initial position
+        self.path.append((self.player.x, self.player.y))
         # Initial distance to goal
         self.d_goal_initial = self.distance_to_goal()
         # Max possible distance from goal
@@ -215,6 +219,9 @@ class ACAS2DGame:
                 t_heading = random.uniform(0, 360)
 
             self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
+
+        # Player's closest approach to traffic throughout the episode
+        self.d_closest_approach = self.minimum_separation()
 
     def minimum_separation(self):
         if self.num_traffic == 0:
@@ -274,16 +281,21 @@ class ACAS2DGame:
         # Update player a_lat based on action taken
         # Action is scaled to [-1, 1] ; scale to original [-ACC_LAT_LIMIT, ACC_LAT_LIMIT]
         self.player.a_lat = action[0] * ACC_LAT_LIMIT
-        # Calculate distance covered
+        # Keep current position to calculate distance covered
         x_old, y_old = self.player.x, self.player.y
         # Update player position based on that v_air and psi
         self.player.update_state()
+        # Update path record
+        self.path.append((self.player.x, self.player.y))
+        # Update pat distance record
         self.d_path += distance(x_old, y_old, self.player.x, self.player.y)
+        # Check and update closest approach record
+        if self.minimum_separation() < self.d_closest_approach:
+            self.d_closest_approach = self.minimum_separation()
         # If the game is still running, update the traffic aircraft positions.
         for t in self.traffic:
             if self.running:
                 t.update_state()
-
         # print("action() 	>>> Action: {}".format(action))
 
     def evaluate(self):
