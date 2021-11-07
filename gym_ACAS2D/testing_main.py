@@ -93,7 +93,7 @@ def simulate(pause=False):
 if __name__ == "__main__":
 
     total_steps = 2048 * 512
-    version = 1
+    version = 5
 
     log_file = "./models/logs/testing_ACAS2D_PPO_{}_{}.txt".format(int(total_steps), version)
     log_to_file = False

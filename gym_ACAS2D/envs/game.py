@@ -100,6 +100,17 @@ def closest_approach_reward(v_closing, d_cpa, exp=4):
         return min(1, (d_cpa / SAFE_DISTANCE) ** exp)
 
 
+def plan_deviation_reward(d_dev, exp=0.5):
+    # d_dev can be positive or negative, depending on the side of the deviation (up or down)
+    d_dev = abs(d_dev)
+    d_goal_init = (WIDTH - GOAL_RADIUS) - (2 * AIRCRAFT_SIZE)
+    d_dev_max = d_goal_init / 2
+    if d_dev > d_dev_max:
+        return 0
+    else:
+        return (1 - d_dev / d_dev_max) ** exp
+
+
 # def path_length_reward(d_path, exp=4):
 #     if d_path >= 0:
 #         d_path_max = 2 * (WIDTH + HEIGHT)
@@ -117,11 +128,14 @@ def distance_reward(d_goal, exp=4):
         raise ValueError("Distance to goal cannot be negative.")
 
 
-def step_reward(v_closing, psi, phi, d_cpa, d_goal):
+def step_reward(v_closing, psi, phi, d_cpa, d_goal, d_dev):
     if v_closing <= 0:
-        return heading_reward(psi, phi) * closest_approach_reward(v_closing, d_cpa)
+        return heading_reward(psi, phi) * \
+               closest_approach_reward(v_closing, d_cpa) * \
+               plan_deviation_reward(d_dev)
     else:
-        return heading_reward(psi, phi) * distance_reward(d_goal)
+        return heading_reward(psi, phi) * \
+               distance_reward(d_goal)
 
 
 class ACAS2DGame:
@@ -182,8 +196,10 @@ class ACAS2DGame:
         self.path.append((self.player.x, self.player.y))
         # Initial distance to goal
         self.d_goal_initial = self.distance_to_goal()
-        # Max possible distance from goal
+        # Maximum possible distance from goal
         self.d_goal_max = self.distance_to_goal() + (AIRSPEED / FPS) * MAX_STEPS
+        # Maximum possible deviation from straight line plan
+        self.d_dev_max = (AIRSPEED / FPS) * MAX_STEPS
         # Maximum possible separation
         self.d_separation_max = np.sqrt(WIDTH ** 2 + HEIGHT ** 2) + (2 * (AIRSPEED / FPS) * MAX_STEPS)
         # Maximum distance of closest approach
@@ -236,6 +252,13 @@ class ACAS2DGame:
         # The psi that would lead the player straight to the goal
         return relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
 
+    def plan_deviation(self):
+        # The deviation (distance) from the straight line trajectory to the goal
+        d_goal = self.distance_to_goal()
+        h_goal = self.heading_to_goal()
+        h_goal_rad = (h_goal / 360.0) * 2 * math.pi
+        return d_goal * np.sin(h_goal_rad)
+
     def check_timeout(self):
         return self.steps == MAX_STEPS
 
@@ -254,9 +277,8 @@ class ACAS2DGame:
         self.steps += 1
 
         obs = [self.steps / MAX_STEPS,
-               # self.player.x / WIDTH,
-               # self.player.y / HEIGHT,
                self.player.psi / 360,
+               self.plan_deviation() / self.d_dev_max,
                self.distance_to_goal() / self.d_goal_max,
                self.heading_to_goal() / 360]
 
@@ -272,8 +294,6 @@ class ACAS2DGame:
         obs += [0] * (2 * (MAX_TRAFFIC - self.num_traffic))
 
         obs = np.array(obs).astype(np.float64)
-
-        # print("observe() 	>>> obs: {}".format(obs))
 
         return obs
 
@@ -296,7 +316,6 @@ class ACAS2DGame:
         for t in self.traffic:
             if self.running:
                 t.update_state()
-        # print("action() 	>>> Action: {}".format(action))
 
     def evaluate(self):
 
@@ -307,17 +326,13 @@ class ACAS2DGame:
         v_closing = closing_speed(self.player, self.traffic[0])
         d_cpa = distance_closest_approach(self.player, self.traffic[0])
         d_goal = self.distance_to_goal()
-        # d_path = self.d_path
+        d_dev = self.plan_deviation()
 
-        r_step = step_reward(v_closing, psi, phi, d_cpa, d_goal)
+        r_step = step_reward(v_closing, psi, phi, d_cpa, d_goal, d_dev)
 
         # Time discount factor
         tdf = 1 - (self.steps / MAX_STEPS)
         reward = r_step * tdf
-
-        # # Penalise timeouts.
-        # if self.check_timeout():
-        #     reward += REWARD_TIMEOUT
 
         # Penalise collisions.
         if self.detect_collisions():
@@ -329,8 +344,6 @@ class ACAS2DGame:
 
         # Accumulate episode rewards
         self.total_reward += reward
-
-        # print("evaluate() 	>>> Reward: {}".format(reward))
 
         return reward
 
@@ -381,8 +394,6 @@ class ACAS2DGame:
 
         # Draw collision radius around aircraft
         pygame.draw.circle(self.screen, RED_RGB, (self.player.x, self.player.y), COLLISION_RADIUS, 1)
-        # pygame.draw.circle(self.screen, YELLOW_RBG, (self.player.x, self.player.y), DANGER_RADIUS, 1)
-        # pygame.draw.circle(self.screen, GREEN_RGB, (self.player.x, self.player.y), SAFE_RADIUS, 1)
 
         # Draw goal radius around goal
         pygame.draw.circle(self.screen, YELLOW_RBG, (self.goal_x, self.goal_y),
@@ -391,8 +402,6 @@ class ACAS2DGame:
         # Draw collision radius around traffic aircraft
         for t in self.traffic:
             pygame.draw.circle(self.screen, RED_RGB, (t.x, t.y), COLLISION_RADIUS, 1)
-            # pygame.draw.circle(self.screen, YELLOW_RBG, (t.x, t.y), DANGER_RADIUS, 1)
-            # pygame.draw.circle(self.screen, GREEN_RGB, (t.x, t.y), SAFE_RADIUS, 1)
 
         # Display distance/separation
         d_goal = self.distance_to_goal()
@@ -411,9 +420,9 @@ class ACAS2DGame:
                                                                               self.heading_to_goal()), 1)),
                               True, BLACK_RGB)
         self.screen.blit(hg, (20, HEIGHT - 100))
-        # d_path = self.d_path
-        # dp = self.font.render("Distance covered: {}".format(round(d_path, 1)), True, BLACK_RGB)
-        # self.screen.blit(dp, (20, HEIGHT - 40))
+        d_dev = self.plan_deviation()
+        dev = self.font.render("Plan deviation : {}".format(round(d_dev, 1)), True, BLACK_RGB)
+        self.screen.blit(dev, (20, HEIGHT - 120))
 
         # Display episode and 'time' (number of game loop iterations)
         st = self.font.render("Steps: {}".format(self.steps), True, BLACK_RGB)
@@ -429,23 +438,28 @@ class ACAS2DGame:
         r_psi = self.font.render("Step heading reward: {}".
                                  format(round(heading_reward(psi, phi), 3)),
                                  True, BLACK_RGB)
-        self.screen.blit(r_psi, (WIDTH - 300, HEIGHT - 100))
+        self.screen.blit(r_psi, (WIDTH - 300, HEIGHT - 120))
         v_closing = closing_speed(self.player, self.traffic[0])
         d_cpa = distance_closest_approach(self.player, self.traffic[0])
         r_cpa = self.font.render("Step closest approach reward: {}".
                                  format(round(closest_approach_reward(v_closing, d_cpa), 3)),
                                  True, BLACK_RGB)
-        self.screen.blit(r_cpa, (WIDTH - 300, HEIGHT - 60))
+        self.screen.blit(r_cpa, (WIDTH - 300, HEIGHT - 100))
         d_goal = self.distance_to_goal()
         r_d = self.font.render("Step distance reward: {}".
                                 format(round(distance_reward(d_goal), 3)),
                                 True, BLACK_RGB)
         self.screen.blit(r_d, (WIDTH - 300, HEIGHT - 80))
+        d_dev = self.plan_deviation()
+        r_dev = self.font.render("Step plan deviation reward: {}".format(round(plan_deviation_reward(d_dev), 3)),
+                                 True, BLACK_RGB)
+        self.screen.blit(r_dev, (WIDTH - 300, HEIGHT - 60))
         r_step = self.font.render("Step reward: {}".format(round(step_reward(v_closing,
                                                                              self.player.psi,
                                                                              self.heading_to_goal(),
                                                                              d_cpa,
-                                                                             d_goal), 3)),
+                                                                             d_goal,
+                                                                             d_dev), 3)),
                                   True, BLACK_RGB)
         self.screen.blit(r_step, (WIDTH - 300, HEIGHT - 40))
 
