@@ -1,6 +1,6 @@
 import gym
 import numpy as np
-from gym.spaces import Dict, Box
+from gym.spaces import Box
 from gym_ACAS2D.envs.game import ACAS2DGame
 from gym_ACAS2D.settings import *
 
