@@ -1,5 +1,7 @@
 from scipy.constants import g
 
+MODEL_VERSION = 5
+
 # GAME CONSTANTS
 OUTCOME_NAMES = {1: 'Goal', 2: 'Collision', 3: 'Timeout'}
 TEST_EPISODES = 100

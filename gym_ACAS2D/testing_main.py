@@ -92,18 +92,17 @@ def simulate(pause=False):
 
 if __name__ == "__main__":
 
-    total_steps = 2048 * 512
-    version = 5
-
-    log_file = "./models/logs/testing_ACAS2D_PPO_{}_{}.txt".format(int(total_steps), version)
+    log_file = "./models/logs/testing_ACAS2D_PPO_{}_{}.txt".format(int(TOTAL_STEPS), MODEL_VERSION)
     log_to_file = False
 
     # Model files
-    best_model_save_path = "./models/best_model_{}_{}".format(int(total_steps), version)
+    best_model_save_path = "./models/best_model_{}_{}".format(int(TOTAL_STEPS), MODEL_VERSION)
     best_model_file = best_model_save_path + "/best_model.zip"
 
     # Testing data file
-    test_data_file = "./models/logs/testing_ACAS2D_PPO_{}_{}_{}.csv".format(int(total_steps), version, TEST_EPISODES)
+    test_data_file = "./models/logs/testing_ACAS2D_PPO_{}_{}_{}.csv".format(int(TOTAL_STEPS),
+                                                                            MODEL_VERSION,
+                                                                            TEST_EPISODES)
 
     if log_to_file:
         orig_stdout = sys.stdout

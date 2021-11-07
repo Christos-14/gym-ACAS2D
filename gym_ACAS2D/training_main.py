@@ -53,16 +53,14 @@ def training():
 
 if __name__ == "__main__":
 
-    version = 5
-
-    log_file = "./models/logs/training_ACAS2D_PPO_{}_{}.txt".format(int(TOTAL_STEPS), version)
+    log_file = "./models/logs/training_ACAS2D_PPO_{}_{}.txt".format(int(TOTAL_STEPS), MODEL_VERSION)
     log_to_file = True
 
     # Folders and file names
-    best_model_save_path = "./models/best_model_{}_{}".format(int(TOTAL_STEPS), version)
+    best_model_save_path = "./models/best_model_{}_{}".format(int(TOTAL_STEPS), MODEL_VERSION)
     best_model_file = best_model_save_path + "/best_model.zip"
     best_model_log_path = best_model_save_path + "/results"
-    final_model_file = "./models/ACAS2D_PPO_{}_{}.zip".format(int(TOTAL_STEPS), version)
+    final_model_file = "./models/ACAS2D_PPO_{}_{}.zip".format(int(TOTAL_STEPS), MODEL_VERSION)
 
     if log_to_file:
         orig_stdout = sys.stdout
