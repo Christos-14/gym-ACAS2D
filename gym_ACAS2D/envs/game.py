@@ -1,141 +1,8 @@
-import numpy as np
 import random
 import pygame
-import math
 
 from gym_ACAS2D.envs.aircraft import PlayerAircraft, TrafficAircraft
-from gym_ACAS2D.settings import *
-
-
-def distance(x1, y1, x2, y2):
-    # Player and goal positions as np.array
-    p1 = np.array((x1, y1))
-    p2 = np.array((x2, y2))
-    # Euclidean distance between player and goal
-    d = np.linalg.norm(p1 - p2, 2)
-    return d
-
-
-def relative_angle(x1, y1, x2, y2):
-    # The psi that would lead the player straight to the goal
-    dx = x2 - x1
-    dy = y2 - y1
-    rads = math.atan2(dy, dx) % (2 * math.pi)
-    degrees = math.degrees(rads)
-    return degrees
-
-
-def relative_speed(aircraft1, aircraft2):
-    # Aircraft 1
-    v1 = aircraft1.v_air
-    psi1 = aircraft1.psi
-    psi1_rad = (psi1 / 360.0) * 2 * math.pi
-    # Aircraft 2
-    v2 = aircraft2.v_air
-    psi2 = aircraft2.psi
-    psi2_rad = (psi2 / 360.0) * 2 * math.pi
-    # Velocity of AC 1 relative to AC 2
-    v12x = v1 * np.cos(psi1_rad) - v2 * np.cos(psi2_rad)
-    v12y = v1 * np.sin(psi1_rad) - v2 * np.sin(psi2_rad)
-    return v12x, v12y
-
-
-def distance_closest_approach(aircraft1, aircraft2):
-    d = distance(aircraft1.x, aircraft1.y,
-                 aircraft2.x, aircraft2.y)
-    a_rel = relative_angle(aircraft1.x, aircraft1.y,
-                           aircraft2.x, aircraft2.y)
-    a_rel_rad = (a_rel / 360.0) * 2 * math.pi
-    v12x, v12y = relative_speed(aircraft1, aircraft2)
-    h_rel_rad = np.arctan(v12y / v12x)
-    dca = d * np.sin(a_rel_rad - h_rel_rad)
-    return dca
-
-
-def closing_speed(aircraft1, aircraft2):
-    # Delta t
-    dt = 1 / FPS
-
-    # Aircraft 1
-    psi_dot_1 = aircraft1.a_lat / aircraft1.v_air
-    psi_1 = (aircraft1.psi + (psi_dot_1 * dt)) % 360
-    psi_rad_1 = (psi_1 / 360.0) * 2 * math.pi
-    x1 = aircraft1.x + (aircraft1.v_air * math.cos(psi_rad_1) * dt)
-    y1 = aircraft1.y + (aircraft1.v_air * math.sin(psi_rad_1) * dt)
-
-    p1 = np.array([x1, y1])
-    v1 = np.array([aircraft1.v_air * math.cos(psi_rad_1) * dt, aircraft1.v_air * math.sin(psi_rad_1) * dt])
-
-    # Aircraft 2
-    psi_dot_2 = aircraft2.a_lat / aircraft2.v_air
-    psi_2 = (aircraft2.psi + (psi_dot_2 * dt)) % 360
-    psi_rad_2 = (psi_2 / 360.0) * 2 * math.pi
-    x2 = aircraft2.x + (aircraft2.v_air * math.cos(psi_rad_2) * dt)
-    y2 = aircraft2.y + (aircraft2.v_air * math.sin(psi_rad_2) * dt)
-
-    p2 = np.array([x2, y2])
-    v2 = np.array([aircraft2.v_air * math.cos(psi_rad_2) * dt, aircraft1.v_air * math.sin(psi_rad_2) * dt])
-
-    # Closing speed
-    c = np.dot((v1 - v2), (p1 - p2)) / distance(x1, y1, x2, y2)
-
-    return c
-
-
-def delta_heading(psi, phi):
-    return min(abs(psi - phi), abs(psi - phi - 360))
-
-
-def heading_reward(psi, phi, exp=4):
-    if (0 <= psi <= 360) and (0 <= phi <= 360):
-        return (1 - delta_heading(psi, phi) / 180) ** exp
-    else:
-        raise ValueError("Heading and relative angle must be in [0, 360].")
-
-
-def closest_approach_reward(v_closing, d_cpa, exp=4):
-    if v_closing > 0:
-        return 1
-    else:
-        return min(1, (d_cpa / SAFE_DISTANCE) ** exp)
-
-
-def plan_deviation_reward(d_dev, exp=0.5):
-    # d_dev can be positive or negative, depending on the side of the deviation (up or down)
-    d_dev = abs(d_dev)
-    d_goal_init = (WIDTH - GOAL_RADIUS) - (2 * AIRCRAFT_SIZE)
-    d_dev_max = d_goal_init / 2
-    if d_dev > d_dev_max:
-        return 0
-    else:
-        return (1 - d_dev / d_dev_max) ** exp
-
-
-# def path_length_reward(d_path, exp=4):
-#     if d_path >= 0:
-#         d_path_max = 2 * (WIDTH + HEIGHT)
-#         return max(0, (1 - d_path / d_path_max) ** exp)
-#     else:
-#         raise ValueError("Distance covered cannot be negative.")
-
-
-def distance_reward(d_goal, exp=4):
-    if d_goal >= 0:
-        d_goal_init = (WIDTH - GOAL_RADIUS) - (2 * AIRCRAFT_SIZE)
-        d_goal_max = d_goal_init + (AIRSPEED / FPS) * MAX_STEPS
-        return min(1, (1 - d_goal / d_goal_max) ** exp)
-    else:
-        raise ValueError("Distance to goal cannot be negative.")
-
-
-def step_reward(v_closing, psi, phi, d_cpa, d_goal, d_dev):
-    if v_closing <= 0:
-        return heading_reward(psi, phi) * \
-               closest_approach_reward(v_closing, d_cpa) * \
-               plan_deviation_reward(d_dev)
-    else:
-        return heading_reward(psi, phi) * \
-               distance_reward(d_goal)
+from gym_ACAS2D.envs.rewards import *
 
 
 class ACAS2DGame:
@@ -177,7 +44,7 @@ class ACAS2DGame:
         # Text font
         self.font = pygame.font.Font(FONT_NAME, FONT_SIZE)
 
-        # Set the goal position at random, in the top part of the airspace.
+        # Set the goal position
         self.goal_x = WIDTH - GOAL_RADIUS
         self.goal_y = HEIGHT / 2
 
@@ -212,9 +79,9 @@ class ACAS2DGame:
 
         # Set the traffic aircraft positions, headings and speeds at random, in the middle part of the airspace.
         self.traffic = []
-        for t in range(self.num_traffic):
+        for n in range(self.num_traffic):
 
-            if t == 0:
+            if n == 0:
                 starts_down = random.randint(0, 1)
                 # Random position in the mid part of the airspace
                 t_x = WIDTH - COLLISION_RADIUS
@@ -260,7 +127,7 @@ class ACAS2DGame:
         return d_goal * np.sin(h_goal_rad)
 
     def check_timeout(self):
-        return self.steps == MAX_STEPS
+        return self.steps > MAX_STEPS
 
     def detect_collisions(self):
         for t in self.traffic:
