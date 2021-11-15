@@ -76,9 +76,10 @@ class ACAS2DGame:
 
         # Number of traffic aircraft
         self.num_traffic = random.randint(MIN_TRAFFIC, MAX_TRAFFIC)
-
         # Set the traffic aircraft positions, headings and speeds at random, in the middle part of the airspace.
         self.traffic = []
+        # Traffic paths
+        self.traffic_paths = [[] for _ in range(self.num_traffic)]
         for n in range(self.num_traffic):
 
             if n == 0:
@@ -102,6 +103,8 @@ class ACAS2DGame:
                 t_heading = random.uniform(0, 360)
 
             self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
+            # Initialise traffic aircraft's path record with initial position
+            self.traffic_paths[n].append((t_x, t_y))
 
         # Player's closest approach to traffic throughout the episode
         self.d_closest_approach = self.minimum_separation()
@@ -171,9 +174,11 @@ class ACAS2DGame:
         x_old, y_old = self.player.x, self.player.y
         # Update player position based on that v_air and psi
         self.player.update_state()
-        # Update path record
+        # Update path records
         self.path.append((self.player.x, self.player.y))
-        # Update pat distance record
+        for n in range(self.num_traffic):
+            self.traffic_paths[n].append((self.traffic[n].x, self.traffic[n].y))
+        # Update path distance record
         self.d_path += distance(x_old, y_old, self.player.x, self.player.y)
         # Check and update closest approach record
         if self.minimum_separation() < self.d_closest_approach:
@@ -185,8 +190,7 @@ class ACAS2DGame:
 
     def evaluate(self):
 
-        # reward = 0
-
+        # Step reward
         psi = self.player.psi
         phi = relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
         v_closing = closing_speed(self.player, self.traffic[0])
@@ -269,7 +273,7 @@ class ACAS2DGame:
         for t in self.traffic:
             pygame.draw.circle(self.screen, RED_RGB, (t.x, t.y), COLLISION_RADIUS, 1)
 
-        # Display distance/separation
+        # Display metrics
         d_goal = self.distance_to_goal()
         dg = self.font.render("Distance to goal: {}".format(round(d_goal, 1)), True, BLACK_RGB)
         self.screen.blit(dg, (20, HEIGHT - 20))
@@ -289,6 +293,9 @@ class ACAS2DGame:
         d_dev = self.plan_deviation()
         dev = self.font.render("Plan deviation : {}".format(round(d_dev, 1)), True, BLACK_RGB)
         self.screen.blit(dev, (20, HEIGHT - 120))
+        a_lat = self.player.a_lat
+        alat = self.font.render("ACTION [a lateral]: {}".format(round(a_lat, 1)), True, BLACK_RGB)
+        self.screen.blit(alat, (20, HEIGHT - 140))
 
         # Display episode and 'time' (number of game loop iterations)
         st = self.font.render("Steps: {}".format(self.steps), True, BLACK_RGB)
