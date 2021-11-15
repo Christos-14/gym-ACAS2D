@@ -155,7 +155,6 @@ class ACAS2DGame:
             obs.append(distance(x1, y1, x2, y2) / self.d_separation_max)
             obs.append(distance_closest_approach(self.player, t) / self.d_cpa_max)
             obs.append(closing_speed(self.player, t) / self.v_closing_max)
-            # obs.append(relative_angle(x1, y1, x2, y2) / 360)
 
         # Padding
         obs += [0] * (2 * (MAX_TRAFFIC - self.num_traffic))
@@ -195,7 +194,7 @@ class ACAS2DGame:
         d_goal = self.distance_to_goal()
         d_dev = self.plan_deviation()
 
-        r_step = step_reward(v_closing, psi, phi, d_cpa, d_goal, d_dev)
+        r_step = step_reward_6(v_closing, psi, phi, d_cpa, d_goal, d_dev)
 
         # Time discount factor
         tdf = 1 - (self.steps / MAX_STEPS)
@@ -313,7 +312,7 @@ class ACAS2DGame:
                                  True, BLACK_RGB)
         self.screen.blit(r_cpa, (WIDTH - 300, HEIGHT - 100))
         d_goal = self.distance_to_goal()
-        r_d = self.font.render("Step distance reward: {}".
+        r_d = self.font.render("Step goal distance reward: {}".
                                 format(round(distance_reward(d_goal), 3)),
                                 True, BLACK_RGB)
         self.screen.blit(r_d, (WIDTH - 300, HEIGHT - 80))
@@ -321,12 +320,12 @@ class ACAS2DGame:
         r_dev = self.font.render("Step plan deviation reward: {}".format(round(plan_deviation_reward(d_dev), 3)),
                                  True, BLACK_RGB)
         self.screen.blit(r_dev, (WIDTH - 300, HEIGHT - 60))
-        r_step = self.font.render("Step reward: {}".format(round(step_reward(v_closing,
-                                                                             self.player.psi,
-                                                                             self.heading_to_goal(),
-                                                                             d_cpa,
-                                                                             d_goal,
-                                                                             d_dev), 3)),
+        r_step = self.font.render("Step reward: {}".format(round(step_reward_6(v_closing,
+                                                                               self.player.psi,
+                                                                               self.heading_to_goal(),
+                                                                               d_cpa,
+                                                                               d_goal,
+                                                                               d_dev), 3)),
                                   True, BLACK_RGB)
         self.screen.blit(r_step, (WIDTH - 300, HEIGHT - 40))
 

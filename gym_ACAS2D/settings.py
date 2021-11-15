@@ -1,6 +1,6 @@
 from scipy.constants import g
 
-MODEL_VERSION = 5
+MODEL_VERSION = 6
 
 # GAME CONSTANTS
 OUTCOME_NAMES = {1: 'Goal', 2: 'Collision', 3: 'Timeout'}
