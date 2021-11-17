@@ -74,7 +74,7 @@ def closing_speed(aircraft1, aircraft2):
     v2 = np.array([aircraft2.v_air * math.cos(psi_rad_2) * dt, aircraft1.v_air * math.sin(psi_rad_2) * dt])
 
     # Closing speed
-    c = np.dot((v1 - v2), (p1 - p2)) / distance(x1, y1, x2, y2)
+    c = (np.dot((v1 - v2), (p1 - p2)) / distance(x1, y1, x2, y2)) / dt
 
     return c
 

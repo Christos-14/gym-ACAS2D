@@ -17,7 +17,7 @@ class Aircraft:
         # Delta t
         dt = 1 / FPS
         # Rate of heading angle
-        self.psi_dot = self.a_lat / self.v_air
+        self.psi_dot = self.a_lat / (self.v_air * dt)
         # Heading angle
         self.psi = (self.psi + (self.psi_dot * dt)) % 360
         psi_rad = (self.psi / 360.0) * 2 * math.pi
