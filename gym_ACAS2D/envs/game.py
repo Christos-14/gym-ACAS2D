@@ -312,10 +312,7 @@ class ACAS2DGame:
         self.screen.blit(hg, (20, HEIGHT - 120))
         d_dev = self.plan_deviation()
         dev = self.font.render("Plan deviation : {}".format(round(d_dev, 1)), True, BLACK_RGB)
-        self.screen.blit(dev, (20, HEIGHT - 120))
-        a_lat = self.player.a_lat
-        alat = self.font.render("ACTION [a lateral]: {}".format(round(a_lat, 1)), True, BLACK_RGB)
-        self.screen.blit(alat, (20, HEIGHT - 140))
+        self.screen.blit(dev, (20, HEIGHT - 140))
 
         # Display episode and 'time' (number of game loop iterations)
         st = self.font.render("Steps: {}".format(self.steps), True, BLACK_RGB)
