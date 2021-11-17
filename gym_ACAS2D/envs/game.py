@@ -72,7 +72,7 @@ class ACAS2DGame:
         # Maximum distance of closest approach
         self.d_cpa_max = np.sqrt(WIDTH ** 2 + HEIGHT ** 2)
         # Maximum (absolute) closing speed
-        self.v_closing_max = 2 * ((AIRSPEED_FACTOR_MAX * AIRSPEED) / FPS)
+        self.v_closing_max = 2 * (AIRSPEED_FACTOR_MAX * AIRSPEED)
 
         # Number of traffic aircraft
         self.num_traffic = random.randint(MIN_TRAFFIC, MAX_TRAFFIC)
@@ -273,6 +273,22 @@ class ACAS2DGame:
         for t in self.traffic:
             pygame.draw.circle(self.screen, RED_RGB, (t.x, t.y), COLLISION_RADIUS, 1)
 
+        # Display player's state
+        pos = self.font.render("pos: ({}, {})".format(round(self.player.x, 1),
+                                                           round(self.player.y, 1)), True, BLACK_RGB)
+        self.screen.blit(pos, (20, 20))
+        vair = self.font.render("v_air: {}".format(round(self.player.v_air, 1)), True, BLACK_RGB)
+        self.screen.blit(vair, (20, 40))
+        psi = self.font.render("psi: {}".format(round(self.player.psi, 1)), True, BLACK_RGB)
+        self.screen.blit(psi, (20, 60))
+        psi_dot = self.font.render("psi_dot: {}".format(round(self.player.psi_dot, 1)), True, BLACK_RGB)
+        self.screen.blit(psi_dot, (20, 80))
+        alat = self.font.render("a_lat: {}".format(round(self.player.a_lat, 1)), True, BLACK_RGB)
+        self.screen.blit(alat, (20, 100))
+        n_alat = self.font.render("a_lat_norm: {}".format(round(self.player.a_lat / ACC_LAT_LIMIT, 3)),
+                                     True, BLACK_RGB)
+        self.screen.blit(n_alat, (20, 120))
+
         # Display metrics
         d_goal = self.distance_to_goal()
         dg = self.font.render("Distance to goal: {}".format(round(d_goal, 1)), True, BLACK_RGB)
@@ -280,16 +296,20 @@ class ACAS2DGame:
         min_separation = self.minimum_separation()
         ms = self.font.render("Min. Separation: {}".format(round(min_separation, 1)), True, BLACK_RGB)
         self.screen.blit(ms, (20, HEIGHT - 40))
+        rel_angle_to_traffic = relative_angle(self.player.x, self.player.y,
+                                              self.traffic[0].x, self.traffic[0].y)
+        ratt = self.font.render("Rel. angle to traffic: {}".format(round(rel_angle_to_traffic, 1)), True, BLACK_RGB)
+        self.screen.blit(ratt, (20, HEIGHT - 60))
         v_closing = closing_speed(self.player, self.traffic[0])
         cs = self.font.render("Closing Speed: {}".format(round(v_closing, 1)), True, BLACK_RGB)
-        self.screen.blit(cs, (20, HEIGHT - 60))
+        self.screen.blit(cs, (20, HEIGHT - 80))
         d_closest = distance_closest_approach(self.player, self.traffic[0])
         dca = self.font.render("Closest approach: {}".format(round(d_closest, 1)), True, BLACK_RGB)
-        self.screen.blit(dca, (20, HEIGHT - 80))
+        self.screen.blit(dca, (20, HEIGHT - 100))
         hg = self.font.render("Delta heading : {}".format(round(delta_heading(self.player.psi,
                                                                               self.heading_to_goal()), 1)),
                               True, BLACK_RGB)
-        self.screen.blit(hg, (20, HEIGHT - 100))
+        self.screen.blit(hg, (20, HEIGHT - 120))
         d_dev = self.plan_deviation()
         dev = self.font.render("Plan deviation : {}".format(round(d_dev, 1)), True, BLACK_RGB)
         self.screen.blit(dev, (20, HEIGHT - 120))
