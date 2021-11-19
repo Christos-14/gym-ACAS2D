@@ -80,4 +80,4 @@ def closing_speed(aircraft1, aircraft2):
 
 
 def delta_heading(psi, phi):
-    return min(abs(psi - phi), abs(psi - phi - 360))
+    return min(abs(psi - phi), 360 - abs(psi - phi))
