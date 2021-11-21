@@ -8,41 +8,73 @@ from gym_ACAS2D.envs.rewards import *
 class ACAS2DGame:
     def __init__(self, episode=None, manual=False):
 
-        # Initialize PyGame
+        # ################################################################ PyGame
         pygame.init()
         # Title and icon
         pygame.display.set_caption(CAPTION)
         pygame.display.set_icon(pygame.image.load(LOGO))
-
-        # Create the screen: WIDTH x HEIGHT
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-        # Game clock
-        self.clock = pygame.time.Clock()
-        # Episode
-        self.episode = episode
-        # Time steps counter
-        self.steps = 0
-        # Total reward
-        self.total_reward = 0
-        # Distance covered by the player
-        self.d_path = 0
-        # Player's path
-        self.path = []
-
-        # Game status flags
-        self.manual = manual  # Is the player controlled manually?
-        self.running = True  # Is the game running?
-        self.quit = False  # Has the game window been closed?
-
-        # Game outcome
-        self.outcome = None
-
         # Load images
         self.playerIMG = pygame.image.load(PLAYER_IMG)
         self.goalIMG = pygame.image.load(GOAL_IMG)
         self.trafficIMG = pygame.image.load(TRAFFIC_IMG)
         # Text font
         self.font = pygame.font.Font(FONT_NAME, FONT_SIZE)
+        # Create the screen: WIDTH x HEIGHT
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        # Game clock
+        self.clock = pygame.time.Clock()
+
+        # ################################################################ Episode
+        self.episode = episode
+        # Time steps counter
+        self.steps = 0
+        # Total reward
+        self.total_reward = 0
+        # Game status flags
+        self.manual = manual  # Is the player controlled manually?
+        self.running = True  # Is the game running?
+        self.quit = False  # Has the game window been closed?
+        # Game outcome
+        self.outcome = None
+
+        # Number of traffic aircraft
+        self.num_traffic = random.randint(MIN_TRAFFIC, MAX_TRAFFIC)
+
+        # ################################################################ Keep track of agent's state and actions
+        # Distance covered by the player
+        self.d_path = 0
+        # Player's path
+        self.path = []
+        # Traffic paths
+        for n in range(self.num_traffic):
+            self.traffic_paths = [[] for _ in range(self.num_traffic)]
+        # # Observations, actions and rewards record
+        # self.observations = []
+        # self.actions = []
+        # self.rewards = []
+
+        # Player's heading record
+        self.heading_record = []
+        # Player's min separation record
+        self.d_sep_record = []
+        # Player's a_lat record
+        self.a_lat_record = []
+
+        # ############################################################### Keep track of agent's step reward parameters
+        self.d_goal_record = []
+        self.delta_h_goal_record = []
+        self.v_closing_record = []
+        self.d_cpa_record = []
+        self.d_dev_record = []
+
+        # ############################################################### Keep track of agent's step rewards
+        self.step_reward_d_goal_record = []
+        self.step_reward_h_goal_record = []
+        self.step_reward_d_cpa_record = []
+        self.step_reward_d_dev_record = []
+        self.step_reward_record = []
+
+        # ############################################################### Initialise environment
 
         # Set the goal position
         self.goal_x = WIDTH - GOAL_RADIUS
@@ -59,10 +91,31 @@ class ACAS2DGame:
         self.player.psi = (relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y) +
                            random.uniform(-PLAYER_INITIAL_HEADING_LIM, PLAYER_INITIAL_HEADING_LIM)) % 360
 
-        # Initialise player's path record with initial position
-        self.path.append((self.player.x, self.player.y))
-        # Initial distance to goal
-        self.d_goal_initial = self.distance_to_goal()
+        # Set the traffic aircraft positions, headings and speeds at random, in the middle part of the airspace.
+        self.traffic = []
+        for n in range(self.num_traffic):
+            if n == 0:
+                starts_down = random.randint(0, 1)
+                # Random position in the mid part of the airspace
+                t_x = WIDTH - COLLISION_RADIUS
+                t_y = COLLISION_RADIUS + (starts_down * (HEIGHT - (2 * COLLISION_RADIUS)))
+                # Random v_air
+                t_speed = random.uniform(AIRSPEED_FACTOR_MIN, AIRSPEED_FACTOR_MAX) * AIRSPEED
+                # Random psi: 0..360 degrees
+                t_heading = (135 + (starts_down * 90) +
+                             random.uniform(-TRAFFIC_INITIAL_HEADING_LIM, TRAFFIC_INITIAL_HEADING_LIM)) % 360
+            else:
+                # Random position in the mid part of the airspace
+                t_x = random.uniform(0, WIDTH - AIRCRAFT_SIZE)
+                t_y = random.uniform(0, 3 * HEIGHT / 5)
+                # Random v_air
+                t_speed = random.uniform(AIRSPEED_FACTOR_MIN, AIRSPEED_FACTOR_MAX) * AIRSPEED
+                # Random psi: 0..360 degrees
+                t_heading = random.uniform(0, 360)
+
+            self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
+
+        # ######################################################## Maximum limits for normalisation of the observations
         # Maximum possible distance from goal
         self.d_goal_max = self.distance_to_goal() + (AIRSPEED / FPS) * MAX_STEPS
         # Maximum possible deviation from straight line plan
@@ -74,40 +127,37 @@ class ACAS2DGame:
         # Maximum (absolute) closing speed
         self.v_closing_max = 2 * (AIRSPEED_FACTOR_MAX * AIRSPEED)
 
-        # Number of traffic aircraft
-        self.num_traffic = random.randint(MIN_TRAFFIC, MAX_TRAFFIC)
-        # Set the traffic aircraft positions, headings and speeds at random, in the middle part of the airspace.
-        self.traffic = []
-        # Traffic paths
-        self.traffic_paths = [[] for _ in range(self.num_traffic)]
+        # ############################################################################### Initialise records
+        # Initialise player's path record with initial position
+        self.path.append((self.player.x, self.player.y))
+        # Initialise traffic aircraft's path record with initial position
         for n in range(self.num_traffic):
-
-            if n == 0:
-                starts_down = random.randint(0, 1)
-                # Random position in the mid part of the airspace
-                t_x = WIDTH - COLLISION_RADIUS
-                t_y = COLLISION_RADIUS + (starts_down * (HEIGHT - (2 * COLLISION_RADIUS)))
-                # Random v_air
-                t_speed = random.uniform(AIRSPEED_FACTOR_MIN, AIRSPEED_FACTOR_MAX) * AIRSPEED
-                # Random psi: 0..360 degrees
-                t_heading = (135 + (starts_down * 90) +
-                             random.uniform(-TRAFFIC_INITIAL_HEADING_LIM, TRAFFIC_INITIAL_HEADING_LIM)) % 360
-
-            else:
-                # Random position in the mid part of the airspace
-                t_x = random.uniform(0, WIDTH - AIRCRAFT_SIZE)
-                t_y = random.uniform(0, 3 * HEIGHT / 5)
-                # Random v_air
-                t_speed = random.uniform(AIRSPEED_FACTOR_MIN, AIRSPEED_FACTOR_MAX) * AIRSPEED
-                # Random psi: 0..360 degrees
-                t_heading = random.uniform(0, 360)
-
-            self.traffic.append(TrafficAircraft(x=t_x, y=t_y, v_air=t_speed, psi=t_heading))
-            # Initialise traffic aircraft's path record with initial position
-            self.traffic_paths[n].append((t_x, t_y))
-
-        # Player's closest approach to traffic throughout the episode
-        self.d_closest_approach = self.minimum_separation()
+            self.traffic_paths[n].append((self.traffic[n].x, self.traffic[n].y))
+        # Player's heading record
+        self.heading_record.append(self.player.psi)
+        # Player's min separation record
+        self.d_sep_record.append(self.minimum_separation())
+        # Player's a_lat record
+        self.a_lat_record.append(self.player.a_lat)
+        # ############################################################### Keep track of agent's step reward parameters
+        psi = self.player.psi
+        phi = self.heading_to_goal()
+        delta_h_goal = delta_heading(psi, phi)
+        v_closing = closing_speed(self.player, self.traffic[0])
+        d_cpa = distance_closest_approach(self.player, self.traffic[0])
+        d_goal = self.distance_to_goal()
+        d_dev = self.plan_deviation()
+        self.d_goal_record.append(d_goal)
+        self.delta_h_goal_record.append(delta_h_goal)
+        self.v_closing_record.append(v_closing)
+        self.d_cpa_record.append(d_cpa)
+        self.d_dev_record.append(d_dev)
+        # ############################################################### Keep track of agent's step rewards
+        self.step_reward_d_goal_record.append(goal_distance_reward(d_goal))
+        self.step_reward_h_goal_record.append(heading_reward(psi, phi))
+        self.step_reward_d_cpa_record.append(closest_approach_reward(v_closing, d_cpa))
+        self.step_reward_d_dev_record.append(plan_deviation_reward(d_dev))
+        self.step_reward_record.append(step_reward_5(v_closing, psi, phi, d_cpa, d_goal, d_dev))
 
     def minimum_separation(self):
         if self.num_traffic == 0:
@@ -162,6 +212,9 @@ class ACAS2DGame:
         # Padding
         obs += [0] * (2 * (MAX_TRAFFIC - self.num_traffic))
 
+        # # Store observation
+        # self.observations.append(obs)
+
         obs = np.array(obs).astype(np.float64)
 
         return obs
@@ -174,25 +227,30 @@ class ACAS2DGame:
         x_old, y_old = self.player.x, self.player.y
         # Update player position based on that v_air and psi
         self.player.update_state()
-        # Update path records
+        # Update records
         self.path.append((self.player.x, self.player.y))
         for n in range(self.num_traffic):
             self.traffic_paths[n].append((self.traffic[n].x, self.traffic[n].y))
-        # Update path distance record
+        # Player's heading record
+        self.heading_record.append(self.player.psi)
+        # Player's min separation record
+        self.d_sep_record.append(self.minimum_separation())
+        # Player's a_lat record
+        self.a_lat_record.append(self.player.a_lat)
+        # Player's path distance
         self.d_path += distance(x_old, y_old, self.player.x, self.player.y)
-        # Check and update closest approach record
-        if self.minimum_separation() < self.d_closest_approach:
-            self.d_closest_approach = self.minimum_separation()
         # If the game is still running, update the traffic aircraft positions.
         for t in self.traffic:
             if self.running:
                 t.update_state()
+        # # Store action
+        # self.actions.append(action[0])
 
     def evaluate(self):
 
         # Step reward
         psi = self.player.psi
-        phi = relative_angle(self.player.x, self.player.y, self.goal_x, self.goal_y)
+        phi = self.heading_to_goal()
         v_closing = closing_speed(self.player, self.traffic[0])
         d_cpa = distance_closest_approach(self.player, self.traffic[0])
         d_goal = self.distance_to_goal()
@@ -204,6 +262,19 @@ class ACAS2DGame:
         tdf = 1 - (self.steps / MAX_STEPS)
         reward = r_step * tdf
 
+        # Record step reward information
+        self.d_goal_record.append(d_goal)
+        self.delta_h_goal_record.append(delta_heading(psi, phi))
+        self.v_closing_record.append(v_closing)
+        self.d_cpa_record.append(d_cpa)
+        self.d_dev_record.append(d_dev)
+        # ################################################################ Keep track of agent's step rewards
+        self.step_reward_d_goal_record.append(goal_distance_reward(d_goal))
+        self.step_reward_h_goal_record.append(heading_reward(psi, phi))
+        self.step_reward_d_cpa_record.append(closest_approach_reward(v_closing, d_cpa))
+        self.step_reward_d_dev_record.append(plan_deviation_reward(d_dev))
+        self.step_reward_record.append(reward)
+
         # Penalise collisions.
         if self.detect_collisions():
             reward += REWARD_COLLISION
@@ -214,6 +285,9 @@ class ACAS2DGame:
 
         # Accumulate episode rewards
         self.total_reward += reward
+
+        # # Store reward
+        # self.rewards.append(reward)
 
         return reward
 
@@ -275,7 +349,7 @@ class ACAS2DGame:
 
         # Display player's state
         pos = self.font.render("pos: ({}, {})".format(round(self.player.x, 1),
-                                                           round(self.player.y, 1)), True, BLACK_RGB)
+                                                      round(self.player.y, 1)), True, BLACK_RGB)
         self.screen.blit(pos, (20, 20))
         vair = self.font.render("v_air: {}".format(round(self.player.v_air, 1)), True, BLACK_RGB)
         self.screen.blit(vair, (20, 40))
@@ -286,7 +360,7 @@ class ACAS2DGame:
         alat = self.font.render("a_lat: {}".format(round(self.player.a_lat, 1)), True, BLACK_RGB)
         self.screen.blit(alat, (20, 100))
         n_alat = self.font.render("a_lat_norm: {}".format(round(self.player.a_lat / ACC_LAT_LIMIT, 3)),
-                                     True, BLACK_RGB)
+                                  True, BLACK_RGB)
         self.screen.blit(n_alat, (20, 120))
 
         # Display metrics
@@ -306,12 +380,12 @@ class ACAS2DGame:
         d_closest = distance_closest_approach(self.player, self.traffic[0])
         dca = self.font.render("Closest approach: {}".format(round(d_closest, 1)), True, BLACK_RGB)
         self.screen.blit(dca, (20, HEIGHT - 100))
-        hg = self.font.render("Delta heading : {}".format(round(delta_heading(self.player.psi,
+        hg = self.font.render("Delta heading: {}".format(round(delta_heading(self.player.psi,
                                                                               self.heading_to_goal()), 1)),
                               True, BLACK_RGB)
         self.screen.blit(hg, (20, HEIGHT - 120))
         d_dev = self.plan_deviation()
-        dev = self.font.render("Plan deviation : {}".format(round(d_dev, 1)), True, BLACK_RGB)
+        dev = self.font.render("Plan deviation: {}".format(round(d_dev, 1)), True, BLACK_RGB)
         self.screen.blit(dev, (20, HEIGHT - 140))
 
         # Display episode and 'time' (number of game loop iterations)
@@ -337,8 +411,8 @@ class ACAS2DGame:
         self.screen.blit(r_cpa, (WIDTH - 300, HEIGHT - 100))
         d_goal = self.distance_to_goal()
         r_d = self.font.render("Step goal distance reward: {}".
-                                format(round(distance_reward(d_goal), 3)),
-                                True, BLACK_RGB)
+                               format(round(goal_distance_reward(d_goal), 3)),
+                               True, BLACK_RGB)
         self.screen.blit(r_d, (WIDTH - 300, HEIGHT - 80))
         d_dev = self.plan_deviation()
         r_dev = self.font.render("Step plan deviation reward: {}".format(round(plan_deviation_reward(d_dev), 3)),
