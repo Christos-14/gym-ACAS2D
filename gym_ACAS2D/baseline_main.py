@@ -27,9 +27,6 @@ def simulate(pause=False):
     e_time_steps = []
     e_path = []
     e_t_paths = []
-    e_d_path = []
-    e_d_cpa = []
-    e_d_goal_final = []
 
     # Test fly-to-goal agent for a number of episodes
     for episode in range(1, TEST_EPISODES + 1):
@@ -57,11 +54,8 @@ def simulate(pause=False):
                 e_outcome.append(OUTCOME_NAMES[environment.game.outcome])
                 e_total_reward.append(environment.game.total_reward)
                 e_time_steps.append(environment.game.steps)
-                e_d_path.append(environment.game.d_path)
                 e_path.append(environment.game.path)
                 e_t_paths.append(environment.game.traffic_paths)
-                e_d_cpa.append(environment.game.d_closest_approach)
-                e_d_goal_final.append(environment.game.distance_to_goal())
                 print("Episode {:<3}: Time steps: {:<7} - Outcome: {:<10} - Total Reward = {}"
                       .format(episode, t, OUTCOME_NAMES[environment.game.outcome], environment.game.total_reward))
                 break
@@ -75,9 +69,6 @@ def simulate(pause=False):
     log_df["Outcome"] = e_outcome
     log_df["Total Reward"] = e_total_reward
     log_df["Time Steps"] = e_time_steps
-    log_df["Path Length"] = e_d_path
-    log_df["Closest Approach"] = e_d_cpa
-    log_df["Final Distance to Goal"] = e_d_goal_final
     log_df["Path"] = e_path
     log_df["Traffic Paths"] = e_t_paths
     log_df.to_csv(test_data_file, index=False)

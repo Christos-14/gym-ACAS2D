@@ -102,7 +102,7 @@ class ACAS2DGame:
                 # Random v_air
                 t_speed = random.uniform(AIRSPEED_FACTOR_MIN, AIRSPEED_FACTOR_MAX) * AIRSPEED
                 # Random psi: 0..360 degrees
-                t_heading = (135 + (starts_down * 90) +
+                t_heading = (145 + (starts_down * 70) +
                              random.uniform(-TRAFFIC_INITIAL_HEADING_LIM, TRAFFIC_INITIAL_HEADING_LIM)) % 360
             else:
                 # Random position in the mid part of the airspace
@@ -256,7 +256,7 @@ class ACAS2DGame:
         d_goal = self.distance_to_goal()
         d_dev = self.plan_deviation()
 
-        r_step = step_reward_6(v_closing, psi, phi, d_cpa, d_goal, d_dev)
+        r_step = step_reward_5(v_closing, psi, phi, d_cpa, d_goal, d_dev)
 
         # Time discount factor
         tdf = 1 - (self.steps / MAX_STEPS)
