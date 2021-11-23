@@ -97,7 +97,7 @@ class ACAS2DGame:
             if n == 0:
                 starts_down = random.randint(0, 1)
                 # Random position in the mid part of the airspace
-                t_x = WIDTH - COLLISION_RADIUS
+                t_x = 2 * WIDTH / 3 - COLLISION_RADIUS
                 t_y = COLLISION_RADIUS + (starts_down * (HEIGHT - (2 * COLLISION_RADIUS)))
                 # Random v_air
                 t_speed = random.uniform(AIRSPEED_FACTOR_MIN, AIRSPEED_FACTOR_MAX) * AIRSPEED

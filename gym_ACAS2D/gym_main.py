@@ -31,10 +31,10 @@ def simulate(pause=False):
             # Quit if the game window closes
             if environment.game.quit:
                 return -1
-            # Fixed action selection for now: Alternate between 0, 1 and -1.
+            # Fixed action selection policy
             # action = np.array([np.cos(((t % 360) / 360) * (2 * math.pi))])
-            # action = np.array([(episode % 3)-1])
-            action = np.array([0])
+            action = np.array([(episode % 3)-1])
+            # action = np.array([0])
             # try:
             #     action = np.array([actions[t]])
             # except IndexError:
